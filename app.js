@@ -55,11 +55,67 @@ function saveQuotesToStorage() {
     localStorage.setItem(DB_KEY, JSON.stringify(quotes));
 }
 
+// Obtener fecha de hoy en formato local ISO (YYYY-MM-DD)
+function getLocalISODate() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Formatear fecha ISO (YYYY-MM-DD) a formato amigable en español
+function formatSpanishDateString(dateStr) {
+    if (!dateStr) return '';
+    // Si ya está formateada como texto (retrocompatibilidad), regresarla igual
+    if (dateStr.includes(' de ')) return dateStr;
+    
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    
+    const year = parts[0];
+    const monthIndex = parseInt(parts[1]) - 1;
+    const day = parseInt(parts[2]);
+    
+    const meses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    
+    return `${day} de ${meses[monthIndex]} de ${year}`;
+}
+
+// Convertir una fecha en español (ej. "24 de Julio de 2026") a formato ISO (YYYY-MM-DD)
+function parseSpanishDateToISO(dateStr) {
+    if (!dateStr) return getLocalISODate();
+    if (dateStr.includes('-') && dateStr.split('-').length === 3) return dateStr; // ya es ISO
+    
+    try {
+        const parts = dateStr.toLowerCase().split(' de ');
+        if (parts.length !== 3) return getLocalISODate();
+        
+        const day = String(parseInt(parts[0])).padStart(2, '0');
+        const year = parts[2].trim();
+        const monthStr = parts[1].trim();
+        
+        const meses = [
+            'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+        ];
+        const monthIndex = meses.indexOf(monthStr);
+        if (monthIndex === -1) return getLocalISODate();
+        
+        const month = String(monthIndex + 1).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch(e) {
+        return getLocalISODate();
+    }
+}
+
 // Función auxiliar para convertir items del esquema viejo {label, value} al nuevo esquema flexible
 function convertOldItemIfNeeded(item) {
     if (!item) return { concepto: '', descripcion: '', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' };
     
-    // Si tiene la propiedad 'label', es del esquema antiguo
     if (item.hasOwnProperty('label') && item.hasOwnProperty('value')) {
         const costKeywords = ['COSTO', 'PRECIO', 'TOTAL', '$', 'IMPORTE'];
         const isCost = costKeywords.some(kw => item.label.toUpperCase().includes(kw));
@@ -71,7 +127,6 @@ function convertOldItemIfNeeded(item) {
         
         if (isCost) {
             hasCosto = true;
-            // Limpieza básica para extraer un número del valor anterior (ej. "$ 1´000.00")
             const cleanedValue = item.value.replace(/[^0-9.]/g, '').replace('´', '');
             const num = parseFloat(cleanedValue);
             if (!isNaN(num)) {
@@ -89,7 +144,6 @@ function convertOldItemIfNeeded(item) {
         };
     }
     
-    // Esquema nuevo
     return {
         concepto: item.concepto || '',
         descripcion: item.descripcion || '',
@@ -236,19 +290,6 @@ function initAccordions() {
     });
 }
 
-// Obtener fecha de hoy formateada en español (Ej: 24 de Julio de 2026)
-function getFormattedTodayDate() {
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    const d = new Date();
-    const dia = d.getDate();
-    const mes = meses[d.getMonth()];
-    const anio = d.getFullYear();
-    return `${dia} de ${mes} de ${anio}`;
-}
-
 // Generar Folio Corporativo único para cada cotización
 function getFolioNumber(quote) {
     if (!quote.createdAt) return 'COP-000000-0001';
@@ -378,14 +419,12 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
         </div>
     `;
 
-    // Referencias internas
     const checkbox = card.querySelector('.item-tiene-costo-checkbox');
     const costContainer = card.querySelector('.cost-details-container');
     const qtyInput = card.querySelector('.item-cantidad-input');
     const priceInput = card.querySelector('.item-precio-input');
     const totalInput = card.querySelector('.item-total-input');
 
-    // Cambiar visibilidad de campos de costo
     checkbox.addEventListener('change', (e) => {
         if (e.target.checked) {
             costContainer.style.display = 'grid';
@@ -398,7 +437,6 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
         triggerPreviewSync();
     });
 
-    // Auto-calcular total
     function autoCalcTotal() {
         const qty = parseFloat(qtyInput.value);
         const price = parseFloat(priceInput.value);
@@ -443,7 +481,9 @@ function openEditor(quoteId) {
             document.getElementById('field-id').value = q.id;
             document.getElementById('field-cliente').value = q.cliente;
             document.getElementById('field-direccion').value = q.direccion;
-            document.getElementById('field-fecha').value = q.fecha;
+            
+            // Convertir la fecha al formato ISO YYYY-MM-DD
+            document.getElementById('field-fecha').value = parseSpanishDateToISO(q.fecha);
             
             if (q.items && Array.isArray(q.items)) {
                 q.items.forEach(item => {
@@ -467,7 +507,7 @@ function openEditor(quoteId) {
         document.getElementById('field-id').value = '';
         document.getElementById('field-cliente').value = '';
         document.getElementById('field-direccion').value = '';
-        document.getElementById('field-fecha').value = getFormattedTodayDate();
+        document.getElementById('field-fecha').value = getLocalISODate();
         
         DEFAULT_QUOTE.items.forEach(item => {
             const cleanItem = convertOldItemIfNeeded(item);
@@ -573,7 +613,7 @@ function saveQuote() {
         id: isNew ? 'q_' + Date.now() : id,
         cliente: document.getElementById('field-cliente').value,
         direccion: document.getElementById('field-direccion').value,
-        fecha: document.getElementById('field-fecha').value,
+        fecha: document.getElementById('field-fecha').value, // se guarda en formato YYYY-MM-DD
         items: items,
         firmante: document.getElementById('field-firmante').value,
         puesto: document.getElementById('field-puesto').value,
@@ -606,7 +646,7 @@ function duplicateQuote(id) {
             ...q,
             id: 'q_' + Date.now(),
             cliente: q.cliente + ' (Copia)',
-            fecha: getFormattedTodayDate(),
+            fecha: getLocalISODate(),
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -642,7 +682,11 @@ function bindFormRealtimePreview() {
                 const previewSheet = document.getElementById('preview-sheet');
                 const valEl = previewSheet.querySelector(`.val-${field}`);
                 if (valEl) {
-                    valEl.textContent = el.value;
+                    if (field === 'fecha') {
+                        valEl.textContent = formatSpanishDateString(el.value);
+                    } else {
+                        valEl.textContent = el.value;
+                    }
                 }
             });
         }
@@ -722,7 +766,11 @@ function triggerPreviewSync() {
         const inputEl = document.getElementById(`field-${field}`);
         const previewValEl = previewSheet.querySelector(`.val-${field}`);
         if (inputEl && previewValEl) {
-            previewValEl.textContent = inputEl.value;
+            if (field === 'fecha') {
+                previewValEl.textContent = formatSpanishDateString(inputEl.value);
+            } else {
+                previewValEl.textContent = inputEl.value;
+            }
         }
     });
 
@@ -759,7 +807,11 @@ function updatePreview(quoteData) {
     fields.forEach(key => {
         const valEl = previewSheet.querySelector(`.val-${key}`);
         if (valEl) {
-            valEl.textContent = quoteData[key];
+            if (key === 'fecha') {
+                valEl.textContent = formatSpanishDateString(quoteData[key]);
+            } else {
+                valEl.textContent = quoteData[key];
+            }
         }
     });
 
@@ -783,7 +835,11 @@ function printCurrentQuote() {
     fields.forEach(key => {
         const valEl = printDoc.querySelector(`.val-${key}`);
         if (valEl) {
-            valEl.textContent = quote[key];
+            if (key === 'fecha') {
+                valEl.textContent = formatSpanishDateString(quote[key]);
+            } else {
+                valEl.textContent = quote[key];
+            }
         }
     });
 
