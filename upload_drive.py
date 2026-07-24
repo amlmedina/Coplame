@@ -32,37 +32,52 @@ MESES_ES = [
 ]
 
 def get_or_create_folder(service, name, parent_id):
-    """Busca una subcarpeta por nombre dentro del padre. Si no existe, la crea."""
-    safe_name = name.replace("'", "\\'")
+    """Busca una subcarpeta por nombre (insensible a mayúsculas y espacios). Si no existe, la crea."""
+    clean_name = name.strip()
+    clean_name_lower = clean_name.lower()
+
+    # 1. Obtener todas las carpetas dentro de parent_id (sin filtrar por nombre en la query de Drive)
     query = (
-        f"name = '{safe_name}' "
-        f"and '{parent_id}' in parents "
+        f"'{parent_id}' in parents "
         f"and mimeType = 'application/vnd.google-apps.folder' "
         f"and trashed = false"
     )
-    results = service.files().list(q=query, fields="files(id, name)").execute()
-    files = results.get('files', [])
-    if files:
-        return files[0]['id']
+    
+    try:
+        results = service.files().list(q=query, fields="files(id, name)").execute()
+        files = results.get('files', [])
+        
+        # 2. Búsqueda exacta insensible a mayúsculas
+        for f in files:
+            if f.get('name', '').strip().lower() == clean_name_lower:
+                return f['id']
+    except Exception as e:
+        print(f"  ⚠️ Error al listar carpetas en Drive: {e}")
 
-    # No existe → crearla
+    # 3. No existe → crearla
     metadata = {
-        'name': name,
+        'name': clean_name,
         'mimeType': 'application/vnd.google-apps.folder',
         'parents': [parent_id]
     }
     folder = service.files().create(body=metadata, fields='id').execute()
-    print(f"  📁 Carpeta creada: {name}")
+    print(f"  📁 Carpeta creada: {clean_name}")
     return folder['id']
 
 
 def file_exists_in_folder(service, name, folder_id):
-    """Devuelve el ID del archivo si ya existe en la carpeta, o None."""
-    safe_name = name.replace("'", "\\'")
-    query = f"name = '{safe_name}' and '{folder_id}' in parents and trashed = false"
-    results = service.files().list(q=query, fields="files(id, name)").execute()
-    files = results.get('files', [])
-    return files[0]['id'] if files else None
+    """Devuelve el ID del archivo si ya existe en la carpeta (insensible a mayúsculas), o None."""
+    clean_name_lower = name.strip().lower()
+    query = f"'{folder_id}' in parents and trashed = false"
+    try:
+        results = service.files().list(q=query, fields="files(id, name)").execute()
+        files = results.get('files', [])
+        for f in files:
+            if f.get('name', '').strip().lower() == clean_name_lower:
+                return f['id']
+    except Exception as e:
+        print(f"  ⚠️ Error al buscar archivo en Drive: {e}")
+    return None
 
 
 def generate_pdf_for_quote(pw, data, pdf_output_path):
