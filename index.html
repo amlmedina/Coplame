@@ -17,6 +17,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Pantalla de Bloqueo PIN -->
+    <div id="pin-lock-screen" class="pin-screen">
+        <div class="pin-container">
+            <div class="pin-logo">
+                <img src="Logo.png" alt="Coplame Logo" style="width: 70px; height: auto; margin-bottom: 10px;">
+                <h2 style="color: var(--primary); margin: 0; font-size: 22px; font-weight: 700;">Coplame</h2>
+                <p style="color: var(--gray-500); font-size: 13px; margin: 4px 0 20px 0;">Acceso Protegido</p>
+            </div>
+            
+            <div class="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            
+            <div class="pin-status" id="pin-status-msg">Ingresa el PIN de acceso</div>
+            
+            <div class="pin-keyboard">
+                <button class="pin-key" data-val="1">1</button>
+                <button class="pin-key" data-val="2">2</button>
+                <button class="pin-key" data-val="3">3</button>
+                <button class="pin-key" data-val="4">4</button>
+                <button class="pin-key" data-val="5">5</button>
+                <button class="pin-key" data-val="6">6</button>
+                <button class="pin-key" data-val="7">7</button>
+                <button class="pin-key" data-val="8">8</button>
+                <button class="pin-key" data-val="9">9</button>
+                <button class="pin-key btn-clear" data-val="clear">✕</button>
+                <button class="pin-key" data-val="0">0</button>
+                <button class="pin-key btn-backspace" data-val="back">⌫</button>
+            </div>
+        </div>
+    </div>
+
     <div id="app" class="app-container">
         <!-- Header Principal -->
         <header class="app-header no-print">

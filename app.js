@@ -162,6 +162,7 @@ let currentQuoteId = null;
 
 // Inicialización de la aplicación
 document.addEventListener('DOMContentLoaded', () => {
+    initPinLock();
     loadQuotes();
     initApp();
     registerServiceWorker();
@@ -1267,3 +1268,85 @@ function printCertificate() {
     printContainer.removeAttribute('data-print-active');
     document.title = originalTitle;
 }
+
+// ---- PANTALLA DE BLOQUEO PIN ----
+const CORRECT_PIN = "3465";
+let enteredPin = "";
+
+function initPinLock() {
+    const lockScreen = document.getElementById('pin-lock-screen');
+    const dots = document.querySelectorAll('.pin-dot');
+    const statusMsg = document.getElementById('pin-status-msg');
+    
+    if (sessionStorage.getItem('coplame_authenticated') === 'true') {
+        lockScreen.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar pantalla de bloqueo
+    lockScreen.style.display = 'flex';
+    
+    const updateDots = () => {
+        dots.forEach((dot, idx) => {
+            if (idx < enteredPin.length) {
+                dot.classList.add('filled');
+            } else {
+                dot.classList.remove('filled');
+            }
+        });
+    };
+    
+    const keys = document.querySelectorAll('.pin-key');
+    keys.forEach(key => {
+        key.addEventListener('click', () => {
+            const val = key.getAttribute('data-val');
+            
+            if (val === 'clear') {
+                enteredPin = "";
+                statusMsg.textContent = "Ingresa el PIN de acceso";
+                statusMsg.classList.remove('error-text');
+                dots.forEach(d => {
+                    d.classList.remove('error');
+                    d.classList.remove('filled');
+                });
+                updateDots();
+            } else if (val === 'back') {
+                if (enteredPin.length > 0) {
+                    enteredPin = enteredPin.slice(0, -1);
+                    statusMsg.textContent = "Ingresa el PIN de acceso";
+                    statusMsg.classList.remove('error-text');
+                    dots.forEach(d => d.classList.remove('error'));
+                    updateDots();
+                }
+            } else {
+                if (enteredPin.length < 4) {
+                    enteredPin += val;
+                    updateDots();
+                    
+                    if (enteredPin.length === 4) {
+                        if (enteredPin === CORRECT_PIN) {
+                            sessionStorage.setItem('coplame_authenticated', 'true');
+                            lockScreen.style.opacity = '0';
+                            setTimeout(() => {
+                                lockScreen.style.display = 'none';
+                            }, 300);
+                        } else {
+                            // PIN Incorrecto
+                            enteredPin = "";
+                            statusMsg.textContent = "PIN Incorrecto. Intenta de nuevo.";
+                            statusMsg.classList.add('error-text');
+                            dots.forEach(d => {
+                                d.classList.add('error');
+                                setTimeout(() => d.classList.remove('error'), 300);
+                            });
+                            setTimeout(() => {
+                                updateDots();
+                            }, 300);
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+
