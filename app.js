@@ -9,16 +9,9 @@ const DEFAULT_QUOTE = {
     direccion: '',
     fecha: '',
     items: [
-        { concepto: 'TIPO DE SERVICIO:', descripcion: 'Desinsectización ( Fumigación )', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'AREA A APLICAR:', descripcion: 'Casas y Areas Comunes ( Registros de Drenajes )', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'PLAGUICIDAS A APLICAR:', descripcion: 'Insecticidas a base de Piretroides de Amplio espectro de Acción', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'PLAGA A CONTROLAR:', descripcion: 'Insectos Rastreros, Voladores en General', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'PERIODICIDAD SUGERIDA:', descripcion: 'Trimestral', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'COSTO UNITARIO POR APLICACIÓN EN CASAS INCLUYENDO REGISTRO:', descripcion: 'Servicio de fumigación', tieneCosto: true, cantidad: 3, precioUnitario: 1000.0, total: 3000.0 },
-        { concepto: 'COSTO POR REGISTRO:', descripcion: 'Servicio por registro extra', tieneCosto: true, cantidad: 5, precioUnitario: 350.0, total: 1750.0 },
-        { concepto: 'CONDICIONES DE PAGO:', descripcion: 'Contado Efectivo', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'VIGENCIA:', descripcion: '2026', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
-        { concepto: 'GARANTIA.', descripcion: '30 DIAS', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' }
+        { concepto: 'SERVICIO DE CONTROL DE PLAGAS:', descripcion: 'Desinsectización y fumigación general en áreas comunes.', tieneCosto: true, cantidad: 1, precioUnitario: 1200.0, total: 1200.0 },
+        { concepto: 'VIGENCIA:', descripcion: '30 DIAS', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'CONDICIONES DE PAGO:', descripcion: 'Pago en efectivo', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' }
     ],
     firmante: 'Alejandro Medina',
     puesto: 'Coordinador General'
