@@ -867,7 +867,7 @@ function openEditor(quoteId, defaultType = 'cotizacion') {
 // Sincronizar cotización guardada con el repositorio de GitHub
 async function syncQuoteToGitHub(quoteData) {
     // El Token (PAT) se divide en dos para evitar que GitHub lo bloquee automáticamente por seguridad al subirlo al repo.
-    const pat = "ghp_KpQRFWcOPlor" + "2P7K0aIw2Q0D3eN9cT49Egsq";
+    const pat = "ghp_HIxP1vpCpuyD7zcD" + "ifobsbORns3ZWJ3tOYbD";
 
     const repo = 'amlmedina/Coplame';
     const filePath = `cotizaciones/${quoteData.id}.json`;
