@@ -450,7 +450,37 @@ function getFolioNumber(quote) {
     return `COP-${y}${m}${d}-${suffix}`;
 }
 
-// Renderizar la lista de cotizaciones en pantalla
+// Obtener el año y nombre del mes de una cotización para agrupación
+function getQuoteYearAndMonth(q) {
+    const dateStr = q.fecha;
+    let dt = new Date(q.updatedAt);
+    const meses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    try {
+        if (dateStr && dateStr.includes('-') && dateStr.split('-').length === 3) {
+            const parts = dateStr.split('-');
+            const year = parts[0];
+            const monthIndex = parseInt(parts[1]) - 1;
+            if (monthIndex >= 0 && monthIndex < 12) {
+                return { year, month: meses[monthIndex] };
+            }
+        } else if (dateStr && dateStr.includes(' de ')) {
+            const parts = dateStr.split(' de ');
+            if (parts.length === 3) {
+                return { year: parts[2].trim(), month: parts[1].trim() };
+            }
+        }
+    } catch(e) {
+        console.error("Error al obtener fecha para agrupación:", e);
+    }
+    
+    return { year: String(dt.getFullYear()), month: meses[dt.getMonth()] };
+}
+
+// Renderizar la lista de cotizaciones en pantalla agrupada por Año -> Mes -> Cliente (Ordenado alfabéticamente)
 function renderList(query = '') {
     const container = document.getElementById('quotes-list');
     container.innerHTML = '';
@@ -476,49 +506,101 @@ function renderList(query = '') {
         return;
     }
 
-    filtered.sort((a, b) => b.updatedAt - a.updatedAt);
-
+    // Agrupar
+    const grouped = {};
     filtered.forEach(q => {
-        const card = document.createElement('div');
-        card.className = 'quote-card';
-        card.innerHTML = `
-            <span class="quote-card-badge">PDF</span>
-            <h4>${q.cliente}</h4>
-            <p>
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                ${q.direccion}
-            </p>
-            <span class="quote-date">Folio: ${getFolioNumber(q)} | Cambio: ${new Date(q.updatedAt).toLocaleDateString('es-MX')}</span>
-            
-            <div class="quote-card-actions">
-                <button class="btn btn-secondary btn-sm btn-delete" data-id="${q.id}">Eliminar</button>
-                <button class="btn btn-secondary btn-sm btn-duplicate" data-id="${q.id}">Duplicar</button>
-                <button class="btn btn-primary btn-sm btn-view" data-id="${q.id}">Ver / Exportar</button>
-            </div>
-        `;
+        const { year, month } = getQuoteYearAndMonth(q);
+        if (!grouped[year]) grouped[year] = {};
+        if (!grouped[year][month]) grouped[year][month] = [];
+        grouped[year][month].push(q);
+    });
 
-        card.querySelector('.btn-view').addEventListener('click', (e) => {
-            e.stopPropagation();
-            currentQuoteId = q.id;
-            switchTab('preview');
+    const MONTH_ORDER = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Ordenar años de forma descendente
+    const sortedYears = Object.keys(grouped).sort((a, b) => b - a);
+
+    sortedYears.forEach(year => {
+        const yearHeader = document.createElement('div');
+        yearHeader.className = 'history-year-header';
+        yearHeader.innerHTML = `<h3>${year}</h3>`;
+        container.appendChild(yearHeader);
+
+        // Ordenar meses de forma descendente
+        const sortedMonths = Object.keys(grouped[year]).sort((a, b) => {
+            return MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a);
         });
 
-        card.querySelector('.btn-duplicate').addEventListener('click', (e) => {
-            e.stopPropagation();
-            duplicateQuote(q.id);
-        });
+        sortedMonths.forEach(month => {
+            const monthGroup = document.createElement('div');
+            monthGroup.className = 'history-month-group';
 
-        card.querySelector('.btn-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteQuote(q.id);
-        });
+            const count = grouped[year][month].length;
+            const monthHeader = document.createElement('div');
+            monthHeader.className = 'history-month-header';
+            monthHeader.innerHTML = `
+                <h4>${month}</h4>
+                <span class="count-badge">${count} ${count === 1 ? 'cotización' : 'cotizaciones'}</span>
+            `;
+            monthGroup.appendChild(monthHeader);
 
-        card.addEventListener('click', () => {
-            currentQuoteId = q.id;
-            switchTab('preview');
-        });
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'history-cards-container';
 
-        container.appendChild(card);
+            // Ordenar cotizaciones por nombre del cliente alfabéticamente
+            const monthQuotes = grouped[year][month].sort((a, b) => {
+                return a.cliente.localeCompare(b.cliente, 'es', { sensitivity: 'base' });
+            });
+
+            monthQuotes.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'quote-card';
+                card.innerHTML = `
+                    <span class="quote-card-badge">PDF</span>
+                    <h4>${q.cliente}</h4>
+                    <p>
+                        <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        ${q.direccion}
+                    </p>
+                    <span class="quote-date">Folio: ${getFolioNumber(q)} | Cambio: ${new Date(q.updatedAt).toLocaleDateString('es-MX')}</span>
+                    
+                    <div class="quote-card-actions">
+                        <button class="btn btn-secondary btn-sm btn-delete" data-id="${q.id}">Eliminar</button>
+                        <button class="btn btn-secondary btn-sm btn-duplicate" data-id="${q.id}">Duplicar</button>
+                        <button class="btn btn-primary btn-sm btn-view" data-id="${q.id}">Ver / Exportar</button>
+                    </div>
+                `;
+
+                card.querySelector('.btn-view').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentQuoteId = q.id;
+                    switchTab('preview');
+                });
+
+                card.querySelector('.btn-duplicate').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    duplicateQuote(q.id);
+                });
+
+                card.querySelector('.btn-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteQuote(q.id);
+                });
+
+                card.addEventListener('click', () => {
+                    currentQuoteId = q.id;
+                    switchTab('preview');
+                });
+
+                cardsContainer.appendChild(card);
+            });
+
+            monthGroup.appendChild(cardsContainer);
+            container.appendChild(monthGroup);
+        });
     });
 }
 
