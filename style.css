@@ -823,8 +823,8 @@ body {
         padding: 0;
     }
 
-    /* Mostrar solo el documento de impresión */
-    .print-only {
+    /* Mostrar solo el documento activo de impresión */
+    .print-only[data-print-active="true"] {
         display: flex !important;
     }
 

@@ -394,6 +394,13 @@ function initApp() {
 
     // 14. Inicializar Directorio de Clientes
     initClientsModule();
+
+    // 15. Botón Compartir
+    const btnShare = document.getElementById('btn-share');
+    btnShare.addEventListener('click', () => shareCurrentQuote());
+
+    // 16. Certificado de Aplicación
+    initCertModule();
 }
 
 // Switch entre vistas principales
@@ -995,8 +1002,9 @@ function printCurrentQuote() {
 
     const originalTitle = document.title;
     document.title = `Cotizacion Coplame - ${quote.cliente}`;
-
+    printDoc.setAttribute('data-print-active', 'true');
     window.print();
+    printDoc.removeAttribute('data-print-active');
     document.title = originalTitle;
 }
 
@@ -1075,3 +1083,105 @@ function initDragAndDrop() {
     });
 }
 
+// Compartir cotización actual (Web Share API en móvil, fallback a imprimir)
+async function shareCurrentQuote() {
+    if (!currentQuoteId) return;
+    const quote = quotes.find(q => q.id === currentQuoteId);
+    if (!quote) return;
+
+    const title = `Cotización Coplame - ${quote.cliente}`;
+    const text = `Cotización para ${quote.cliente}\n${quote.direccion}\nFolio: ${getFolioNumber(quote)}\nFecha: ${formatSpanishDateString(quote.fecha)}`;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({ title, text });
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.warn('Share error:', err);
+                window.print();
+            }
+        }
+    } else {
+        // Fallback: copiar datos al portapapeles
+        try {
+            await navigator.clipboard.writeText(text);
+            alert('✅ Datos de la cotización copiados al portapapeles.');
+        } catch {
+            window.print();
+        }
+    }
+}
+
+// --- MÓDULO DE CERTIFICADO DE APLICACIÓN ---
+
+function initCertModule() {
+    const certForm = document.getElementById('cert-form');
+    const btnCertCancel = document.getElementById('btn-cert-cancel');
+
+    // Fecha por defecto = hoy
+    document.getElementById('cert-fecha-aplicacion').value = getLocalISODate();
+
+    if (btnCertCancel) {
+        btnCertCancel.addEventListener('click', () => {
+            switchTab('list');
+        });
+    }
+
+    if (certForm) {
+        certForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            printCertificate();
+        });
+    }
+}
+
+function renderCertToContainer(container) {
+    const template = document.getElementById('cert-sheet-template');
+    container.innerHTML = '';
+    container.appendChild(template.content.cloneNode(true));
+
+    const fields = [
+        'cliente', 'direccion', 'fecha-aplicacion',
+        'tipo-servicio', 'area', 'plaga',
+        'producto', 'dosis', 'metodo',
+        'tecnico', 'puesto'
+    ];
+
+    fields.forEach(field => {
+        const inputEl = document.getElementById(`cert-${field}`);
+        const valEl = container.querySelector(`.cert-val-${field}`);
+        if (inputEl && valEl) {
+            const val = inputEl.value;
+            valEl.textContent = field.includes('fecha') ? formatSpanishDateString(val) : val;
+        }
+    });
+
+    // Próxima aplicación
+    const proximaInput = document.getElementById('cert-proxima');
+    const proximaEl = container.querySelector('.cert-val-proxima');
+    if (proximaEl) {
+        proximaEl.textContent = proximaInput && proximaInput.value
+            ? formatSpanishDateString(proximaInput.value)
+            : 'A definir';
+    }
+
+    // Folio del certificado
+    const folioEl = container.querySelector('.cert-val-folio');
+    if (folioEl) {
+        const ts = Date.now().toString().substr(-6);
+        folioEl.textContent = `CERT-${new Date().getFullYear()}-${ts}`;
+    }
+}
+
+function printCertificate() {
+    const printContainer = document.getElementById('print-certificate');
+    renderCertToContainer(printContainer);
+
+    const cliente = document.getElementById('cert-cliente').value || 'Certificado';
+    const originalTitle = document.title;
+    document.title = `Certificado Coplame - ${cliente}`;
+    printContainer.setAttribute('data-print-active', 'true');
+    window.print();
+    printContainer.removeAttribute('data-print-active');
+    document.title = originalTitle;
+}

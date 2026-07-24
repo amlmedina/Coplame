@@ -54,6 +54,10 @@
                 <svg viewBox="0 0 24 24" class="icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                 Vista PDF
             </button>
+            <button class="nav-tab" data-tab="cert-editor" id="tab-cert-editor">
+                <svg viewBox="0 0 24 24" class="icon"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+                Certificado
+            </button>
         </nav>
 
         <main class="app-content no-print">
@@ -144,6 +148,10 @@
                         <svg viewBox="0 0 24 24" class="icon"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                         Editar
                     </button>
+                    <button id="btn-share" class="btn btn-secondary btn-sm">
+                        <svg viewBox="0 0 24 24" class="icon"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+                        Compartir
+                    </button>
                     <button id="btn-print" class="btn btn-primary btn-sm">
                         <svg viewBox="0 0 24 24" class="icon"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
                         Imprimir / PDF
@@ -158,12 +166,94 @@
                     </div>
                 </div>
             </section>
+
+            <!-- VISTA: Editor de Certificado de Aplicación -->
+            <section id="view-cert-editor" class="tab-view">
+                <form id="cert-form">
+                    <input type="hidden" id="cert-field-id">
+                    <!-- SECCIÓN: Datos del Servicio Aplicado -->
+                    <div class="accordion-item expanded">
+                        <div class="accordion-header"><h3>Datos del Servicio</h3></div>
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="cert-cliente">Cliente</label>
+                                <input type="text" id="cert-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" required autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-direccion">Dirección</label>
+                                <input type="text" id="cert-direccion" list="addresses-datalist" placeholder="Ej. Matamoros #140..." required autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-fecha-aplicacion">Fecha de Aplicación</label>
+                                <input type="date" id="cert-fecha-aplicacion" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-tipo-servicio">Tipo de Servicio</label>
+                                <input type="text" id="cert-tipo-servicio" placeholder="Ej. Desinsectización (Fumigación)" value="Desinsectización (Fumigación)">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-area">Área Tratada</label>
+                                <input type="text" id="cert-area" placeholder="Ej. Casas y Áreas Comunes" value="Casas y Áreas Comunes">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-plaga">Plaga Controlada</label>
+                                <input type="text" id="cert-plaga" placeholder="Ej. Insectos rastreros y voladores" value="Insectos rastreros y voladores en general">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- SECCIÓN: Productos Aplicados -->
+                    <div class="accordion-item">
+                        <div class="accordion-header"><h3>Productos y Dosis</h3></div>
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="cert-producto">Plaguicida / Producto</label>
+                                <input type="text" id="cert-producto" placeholder="Ej. Piretroide de Amplio Espectro" value="Insecticidas a base de Piretroides de Amplio Espectro">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-dosis">Dosis / Concentración</label>
+                                <input type="text" id="cert-dosis" placeholder="Ej. 5 ml / L" value="Según etiqueta del fabricante">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-metodo">Método de Aplicación</label>
+                                <input type="text" id="cert-metodo" placeholder="Ej. Aspersión ULV" value="Aspersión residual">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- SECCIÓN: Firma -->
+                    <div class="accordion-item">
+                        <div class="accordion-header"><h3>Técnico y Firma</h3></div>
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="cert-tecnico">Nombre del Técnico Aplicador</label>
+                                <input type="text" id="cert-tecnico" value="Alejandro Medina">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-puesto">Puesto</label>
+                                <input type="text" id="cert-puesto" value="Coordinador General">
+                            </div>
+                            <div class="form-group">
+                                <label for="cert-proxima">Próxima Aplicación Sugerida</label>
+                                <input type="date" id="cert-proxima">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="btn-cert-cancel" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Generar Certificado</button>
+                    </div>
+                </form>
+            </section>
         </main>
     </div>
 
-    <!-- EL DOCUMENTO PARA IMPRESIÓN (Separado para control total de estilos de impresión) -->
+    <!-- EL DOCUMENTO PARA IMPRESIÓN - COTIZACIÓN -->
     <div id="print-document" class="quote-document-sheet print-only">
         <!-- Rellenado dinámicamente por JS al momento de imprimir -->
+    </div>
+
+    <!-- EL DOCUMENTO PARA IMPRESIÓN - CERTIFICADO -->
+    <div id="print-certificate" class="quote-document-sheet print-only">
+        <!-- Rellenado dinámicamente por JS al momento de imprimir certificado -->
     </div>
 
     <!-- TEMPLATE PARA LA HOJA DE COTIZACIÓN -->
@@ -227,6 +317,82 @@
             <div class="sig-line"></div>
             <p class="sig-name val-firmante"></p>
             <p class="sig-title val-puesto"></p>
+        </div>
+
+        <div class="doc-footer">
+            <p class="footer-address">Cotingas # 47 Fracc: Las Alamedas, Atizapan de Zaragoza, Edo. de Mex.</p>
+            <p class="footer-contact">Tel: 55 10 94 44 39 <span class="footer-email">coplame@hotmail.com</span></p>
+            <p class="footer-licence">Lic. Fed. SSA A 93-231</p>
+        </div>
+    </template>
+
+    <!-- TEMPLATE PARA EL CERTIFICADO DE APLICACIÓN -->
+    <template id="cert-sheet-template">
+        <div class="doc-header">
+            <div class="doc-logo-container">
+                <img class="doc-logo" src="Logo.png" alt="Coplame Logo">
+            </div>
+            <div class="doc-brand-title">
+                <h1 class="brand-title-coplame">Coplame</h1>
+                <h2 class="brand-title-fumigaciones">Fumigaciones</h2>
+                <p class="brand-subtitle">Control y Manejo Seguro de Plagas</p>
+            </div>
+        </div>
+
+        <div class="doc-title">
+            CERTIFICADO DE APLICACIÓN
+        </div>
+
+        <div class="doc-body">
+            <!-- Bloque de información corporativo -->
+            <div class="doc-info-block">
+                <div class="info-column">
+                    <div class="info-title">CLIENTE Y DIRECCIÓN</div>
+                    <div class="info-row"><span class="info-label">CLIENTE:</span> <span class="cert-val-cliente" style="font-weight: bold; color: #1a202c;"></span></div>
+                    <div class="info-row"><span class="info-label">DIRECCIÓN:</span> <span class="cert-val-direccion"></span></div>
+                </div>
+                <div class="info-column">
+                    <div class="info-title">DATOS DEL DOCUMENTO</div>
+                    <div class="info-row"><span class="info-label">FECHA APLICACIÓN:</span> <span class="cert-val-fecha-aplicacion"></span></div>
+                    <div class="info-row"><span class="info-label">FOLIO CERT.:</span> <span class="cert-val-folio" style="font-weight: bold; color: #0b4c2b;"></span></div>
+                </div>
+            </div>
+
+            <!-- Tabla de detalles del servicio -->
+            <div class="table-container">
+                <table class="doc-table services-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="width:40%; text-align:left;">Concepto</th>
+                            <th style="width:60%; text-align:left;">Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">TIPO DE SERVICIO</td><td class="cert-val-tipo-servicio" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr style="background:#f7faf8;"><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">ÁREA TRATADA</td><td class="cert-val-area" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">PLAGA CONTROLADA</td><td class="cert-val-plaga" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr style="background:#f7faf8;"><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">PLAGUICIDA APLICADO</td><td class="cert-val-producto" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">DOSIS / CONCENTRACIÓN</td><td class="cert-val-dosis" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr style="background:#f7faf8;"><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">MÉTODO DE APLICACIÓN</td><td class="cert-val-metodo" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                        <tr><td style="font-weight:600; padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;">PRÓXIMA APLICACIÓN</td><td class="cert-val-proxima" style="padding:6px 8px; border:1px solid #cbd5e0; font-size:11px;"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Leyenda de certificación -->
+            <div style="border: 1.5px solid #0b4c2b; border-radius: 6px; padding: 10px 14px; margin-top: 10px; background: #f0faf5;">
+                <p style="font-size: 11px; color: #2d3748; line-height: 1.5; margin: 0;">
+                    Por medio del presente documento, <strong>Coplame Fumigaciones</strong> certifica que el servicio de control de plagas fue realizado en las instalaciones indicadas, en estricto apego a las normas sanitarias y fitosanitarias vigentes, utilizando plaguicidas registrados ante la COFEPRIS.<br>
+                    Lic. Fed. SSA A 93-231
+                </p>
+            </div>
+        </div>
+
+        <div class="doc-signature">
+            <p class="sig-atentamente">ATENTAMENTE</p>
+            <div class="sig-line"></div>
+            <p class="sig-name cert-val-tecnico"></p>
+            <p class="sig-title cert-val-puesto"></p>
         </div>
 
         <div class="doc-footer">
