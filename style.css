@@ -711,8 +711,7 @@ body {
 
 /* Footer Fijo en la Hoja */
 .doc-footer {
-    border-top: 1px solid #cbd5e0;
-    padding-top: 10px;
+    padding-top: 15px;
     text-align: center;
     font-size: 11.5px;
     color: #4a5568;
