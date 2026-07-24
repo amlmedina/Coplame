@@ -2,6 +2,145 @@
 
 // Base de Datos en LocalStorage
 const DB_KEY = 'coplame_quotes';
+const CLIENTS_KEY = 'coplame_clients';
+
+// ---- DIRECTORIO DE CLIENTES ----
+
+function loadClients() {
+    const raw = localStorage.getItem(CLIENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+}
+
+function saveClients(clients) {
+    localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+}
+
+function addClientIfNew(nombre, direccion) {
+    if (!nombre || !nombre.trim()) return;
+    const clients = loadClients();
+    const exists = clients.some(c => c.nombre.toLowerCase() === nombre.trim().toLowerCase());
+    if (!exists) {
+        clients.push({ nombre: nombre.trim(), direccion: (direccion || '').trim() });
+        saveClients(clients);
+    }
+    refreshClientDatalist();
+}
+
+function refreshClientDatalist() {
+    const clients = loadClients();
+    
+    // Populate cliente datalist
+    const clientDl = document.getElementById('clients-datalist');
+    if (clientDl) {
+        clientDl.innerHTML = '';
+        clients.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.nombre;
+            clientDl.appendChild(opt);
+        });
+    }
+    
+    // Populate direccion datalist (all unique addresses)
+    const addrDl = document.getElementById('addresses-datalist');
+    if (addrDl) {
+        addrDl.innerHTML = '';
+        clients.filter(c => c.direccion).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.direccion;
+            addrDl.appendChild(opt);
+        });
+    }
+}
+
+function renderClientsList() {
+    const clients = loadClients();
+    const container = document.getElementById('clients-list');
+    if (!container) return;
+    
+    if (clients.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color: var(--gray-400); font-size: 13px; padding: 20px 0;">Sin clientes guardados aún.<br>Se guardan automáticamente al crear cotizaciones.</p>`;
+        return;
+    }
+    
+    container.innerHTML = '';
+    clients.forEach((c, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--gray-100);';
+        item.innerHTML = `
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.nombre}</div>
+                ${c.direccion ? `<div style="font-size: 11px; color: var(--gray-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.direccion}</div>` : ''}
+            </div>
+            <button class="btn btn-sm" data-index="${index}" style="padding: 4px 8px; font-size: 11px; background: var(--gray-100); color: var(--danger); border: none; border-radius: 6px; cursor: pointer; flex-shrink: 0;">✕</button>
+        `;
+        item.querySelector('button').addEventListener('click', () => {
+            const updated = loadClients();
+            updated.splice(index, 1);
+            saveClients(updated);
+            refreshClientDatalist();
+            renderClientsList();
+        });
+        container.appendChild(item);
+    });
+}
+
+function initClientsModule() {
+    const btnClients = document.getElementById('btn-clients');
+    const clientsModal = document.getElementById('clients-modal');
+    const btnCloseClients = document.getElementById('btn-close-clients');
+    const btnAddClient = document.getElementById('btn-add-client');
+    const newClientName = document.getElementById('new-client-name');
+    const newClientAddress = document.getElementById('new-client-address');
+    const clienteInput = document.getElementById('field-cliente');
+    
+    // Auto-fill address when client is selected from datalist
+    if (clienteInput) {
+        clienteInput.addEventListener('change', () => {
+            const clients = loadClients();
+            const match = clients.find(c => c.nombre.toLowerCase() === clienteInput.value.trim().toLowerCase());
+            if (match && match.direccion) {
+                const dir = document.getElementById('field-direccion');
+                if (dir && !dir.value) {
+                    dir.value = match.direccion;
+                }
+            }
+        });
+    }
+
+    if (btnClients) {
+        btnClients.addEventListener('click', () => {
+            renderClientsList();
+            clientsModal.style.display = 'flex';
+        });
+    }
+
+    if (btnCloseClients) {
+        btnCloseClients.addEventListener('click', () => {
+            clientsModal.style.display = 'none';
+        });
+    }
+
+    if (clientsModal) {
+        clientsModal.addEventListener('click', (e) => {
+            if (e.target === clientsModal) clientsModal.style.display = 'none';
+        });
+    }
+
+    if (btnAddClient) {
+        btnAddClient.addEventListener('click', () => {
+            const name = newClientName.value.trim();
+            const address = newClientAddress.value.trim();
+            if (!name) { newClientName.focus(); return; }
+            addClientIfNew(name, address);
+            newClientName.value = '';
+            newClientAddress.value = '';
+            renderClientsList();
+        });
+    }
+    
+    // Load datalists on init
+    refreshClientDatalist();
+}
 
 // Valores por defecto para una nueva cotización (nuevo esquema de items flexibles)
 const DEFAULT_QUOTE = {
@@ -183,9 +322,13 @@ function initApp() {
         }
     });
 
-    // 5. Enviar Formulario (Guardar)
+    // 5. Enviar Formulario (Guardar) — también guarda cliente automáticamente
     quoteForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        // Auto-guardar cliente en el directorio
+        const clienteName = document.getElementById('field-cliente').value;
+        const clienteDir = document.getElementById('field-direccion').value;
+        addClientIfNew(clienteName, clienteDir);
         saveQuote();
     });
 
@@ -248,6 +391,9 @@ function initApp() {
 
     // 13. Inicializar Drag and Drop para reordenar
     initDragAndDrop();
+
+    // 14. Inicializar Directorio de Clientes
+    initClientsModule();
 }
 
 // Switch entre vistas principales

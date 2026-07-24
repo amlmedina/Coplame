@@ -26,6 +26,9 @@
                     <span class="brand-orange">Fumigaciones</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="btn-clients" class="btn btn-secondary btn-sm" style="padding: 8px; border-radius: 50%;" title="Directorio de Clientes">
+                        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    </button>
                     <button id="btn-settings" class="btn btn-secondary btn-sm" style="padding: 8px; border-radius: 50%;">
                         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
                     </button>
@@ -77,11 +80,13 @@
                         <div class="accordion-body">
                             <div class="form-group">
                                 <label for="field-cliente">Cliente</label>
-                                <input type="text" id="field-cliente" placeholder="Ej. Condominio Matamoros" required>
+                                <input type="text" id="field-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" required autocomplete="off">
+                                <datalist id="clients-datalist"></datalist>
                             </div>
                             <div class="form-group">
                                 <label for="field-direccion">Dirección</label>
-                                <input type="text" id="field-direccion" placeholder="Ej. Matamoros # 140 Col. Barrio el Capulin" required>
+                                <input type="text" id="field-direccion" list="addresses-datalist" placeholder="Ej. Matamoros # 140 Col. Barrio el Capulin" required autocomplete="off">
+                                <datalist id="addresses-datalist"></datalist>
                             </div>
                             <div class="form-group">
                                 <label for="field-fecha">Fecha</label>
@@ -245,6 +250,36 @@
                     <input type="password" id="settings-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                 </div>
                 <button id="btn-save-settings" class="btn btn-primary" style="width: 100%;">Guardar Token</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal de Directorio de Clientes -->
+    <div id="clients-modal" class="modal no-print" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>📋 Directorio de Clientes</h3>
+                <button id="btn-close-clients" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Los clientes guardados aparecerán como sugerencias al escribir en el formulario. Al guardar una cotización, el cliente se guarda automáticamente.</p>
+                
+                <!-- Formulario para agregar cliente manualmente -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 10px;">Nombre del Cliente</label>
+                        <input type="text" id="new-client-name" placeholder="Ej. Condominio Matamoros">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 10px;">Dirección</label>
+                        <input type="text" id="new-client-address" placeholder="Ej. Matamoros # 140...">
+                    </div>
+                </div>
+                <button id="btn-add-client" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">+ Agregar Cliente</button>
+
+                <!-- Lista de clientes -->
+                <div id="clients-list" style="max-height: 280px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
