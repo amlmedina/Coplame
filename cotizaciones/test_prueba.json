@@ -1,0 +1,13 @@
+{
+  "id": "q_prueba_001",
+  "cliente": "Cliente de Prueba",
+  "direccion": "Calle de Prueba #1, Col. Test",
+  "fecha": "2026-07-23",
+  "firmante": "Alejandro Medina",
+  "puesto": "Coordinador General",
+  "items": [
+    { "concepto": "SERVICIO DE PRUEBA:", "descripcion": "Cotizacion de prueba para validar sincronizacion con Google Drive.", "tieneCosto": true, "cantidad": 1, "precioUnitario": 1000, "total": 1000 }
+  ],
+  "createdAt": 1753228900000,
+  "updatedAt": 1753228900000
+}
