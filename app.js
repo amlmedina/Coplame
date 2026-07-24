@@ -3,22 +3,22 @@
 // Base de Datos en LocalStorage
 const DB_KEY = 'coplame_quotes';
 
-// Valores por defecto para una nueva cotización
+// Valores por defecto para una nueva cotización (nuevo esquema de items flexibles)
 const DEFAULT_QUOTE = {
     cliente: '',
     direccion: '',
     fecha: '',
     items: [
-        { label: 'TIPO DE SERVICIO:', value: 'Desinsectización ( Fumigación )' },
-        { label: 'AREA A APLICAR:', value: 'Casas y Areas Comunes ( Registros de Drenajes )' },
-        { label: 'PLAGUICIDAS A APLICAR:', value: 'Insecticidas a base de Piretroides de Amplio espectro de Acción' },
-        { label: 'PLAGA A CONTROLAR:', value: 'Insectos Rastreros, Voladores en General' },
-        { label: 'PERIODICIDAD SUGERIDA:', value: 'Trimestral' },
-        { label: 'COSTO UNITARIO POR APLICACIÓN EN CASAS INCLUYENDO REGISTRO:', value: '$ 1´000.00 A Partir de 3' },
-        { label: 'COSTO POR REGISTRO:', value: '$ 350.00 A Partir de 5' },
-        { label: 'CONDICIONES DE PAGO:', value: 'Contado Efectivo' },
-        { label: 'VIGENCIA:', value: '2026' },
-        { label: 'GARANTIA.', value: '30 DIAS' }
+        { concepto: 'TIPO DE SERVICIO:', descripcion: 'Desinsectización ( Fumigación )', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'AREA A APLICAR:', descripcion: 'Casas y Areas Comunes ( Registros de Drenajes )', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'PLAGUICIDAS A APLICAR:', descripcion: 'Insecticidas a base de Piretroides de Amplio espectro de Acción', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'PLAGA A CONTROLAR:', descripcion: 'Insectos Rastreros, Voladores en General', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'PERIODICIDAD SUGERIDA:', descripcion: 'Trimestral', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'COSTO UNITARIO POR APLICACIÓN EN CASAS INCLUYENDO REGISTRO:', descripcion: 'Servicio de fumigación', tieneCosto: true, cantidad: 3, precioUnitario: 1000.0, total: 3000.0 },
+        { concepto: 'COSTO POR REGISTRO:', descripcion: 'Servicio por registro extra', tieneCosto: true, cantidad: 5, precioUnitario: 350.0, total: 1750.0 },
+        { concepto: 'CONDICIONES DE PAGO:', descripcion: 'Contado Efectivo', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'VIGENCIA:', descripcion: '2026', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' },
+        { concepto: 'GARANTIA.', descripcion: '30 DIAS', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' }
     ],
     firmante: 'Alejandro Medina',
     puesto: 'Coordinador General'
@@ -53,6 +53,51 @@ function loadQuotes() {
 // Guardar cotizaciones en LocalStorage
 function saveQuotesToStorage() {
     localStorage.setItem(DB_KEY, JSON.stringify(quotes));
+}
+
+// Función auxiliar para convertir items del esquema viejo {label, value} al nuevo esquema flexible
+function convertOldItemIfNeeded(item) {
+    if (!item) return { concepto: '', descripcion: '', tieneCosto: false, cantidad: '', precioUnitario: '', total: '' };
+    
+    // Si tiene la propiedad 'label', es del esquema antiguo
+    if (item.hasOwnProperty('label') && item.hasOwnProperty('value')) {
+        const costKeywords = ['COSTO', 'PRECIO', 'TOTAL', '$', 'IMPORTE'];
+        const isCost = costKeywords.some(kw => item.label.toUpperCase().includes(kw));
+        
+        let parsedPrice = '';
+        let parsedQty = '';
+        let parsedTotal = '';
+        let hasCosto = false;
+        
+        if (isCost) {
+            hasCosto = true;
+            // Limpieza básica para extraer un número del valor anterior (ej. "$ 1´000.00")
+            const cleanedValue = item.value.replace(/[^0-9.]/g, '').replace('´', '');
+            const num = parseFloat(cleanedValue);
+            if (!isNaN(num)) {
+                parsedTotal = num;
+            }
+        }
+        
+        return {
+            concepto: item.label,
+            descripcion: item.value,
+            tieneCosto: hasCosto,
+            cantidad: parsedQty,
+            precioUnitario: parsedPrice,
+            total: parsedTotal
+        };
+    }
+    
+    // Esquema nuevo
+    return {
+        concepto: item.concepto || '',
+        descripcion: item.descripcion || '',
+        tieneCosto: !!item.tieneCosto,
+        cantidad: item.cantidad !== undefined ? item.cantidad : '',
+        precioUnitario: item.precioUnitario !== undefined ? item.precioUnitario : '',
+        total: item.total !== undefined ? item.total : ''
+    };
 }
 
 // Inicializar vistas, eventos e interfaz
@@ -116,7 +161,7 @@ function initApp() {
 
     // 9. Agregar Campo Dinámico en el Editor
     btnAddItem.addEventListener('click', () => {
-        addDynamicItemRow('', '');
+        addDynamicItemRow('', '', false, '', '', '');
         triggerPreviewSync();
     });
 
@@ -287,8 +332,8 @@ function renderList(query = '') {
     });
 }
 
-// Agregar una fila de campo dinámico en el editor
-function addDynamicItemRow(label, value) {
+// Agregar una fila de campo dinámico y flexible en el editor
+function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, cantidad = '', precioUnitario = '', total = '') {
     const container = document.getElementById('dynamic-items-container');
     const rowId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
@@ -297,29 +342,83 @@ function addDynamicItemRow(label, value) {
     card.id = rowId;
     card.innerHTML = `
         <div class="dynamic-item-header">
-            <span>Elemento</span>
+            <span>Elemento de Cotización</span>
             <button type="button" class="btn-remove-item" data-row-id="${rowId}">
                 <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                 Quitar
             </button>
         </div>
         <div class="form-group">
-            <label>Etiqueta / Concepto (Ej. TIPO DE SERVICIO:)</label>
-            <input type="text" class="item-label-input" value="${label}" placeholder="Ej. CONDICIONES DE PAGO:" required>
+            <label>Concepto / Servicio</label>
+            <input type="text" class="item-concepto-input" value="${concepto}" placeholder="Ej. Servicio de Control de Plagas" required>
         </div>
         <div class="form-group">
-            <label>Descripción / Valor</label>
-            <textarea class="item-value-input" rows="2" placeholder="Ej. Contado Efectivo" required>${value}</textarea>
+            <label>Descripción / Detalles</label>
+            <textarea class="item-descripcion-input" rows="2" placeholder="Detalles de aplicación..." required>${descripcion}</textarea>
+        </div>
+        
+        <div class="form-group-checkbox" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <input type="checkbox" class="item-tiene-costo-checkbox" id="check_${rowId}" ${tieneCosto ? 'checked' : ''} style="width:auto; margin:0; cursor:pointer;">
+            <label for="check_${rowId}" style="margin:0; cursor:pointer; font-size:12px; text-transform:none; font-weight:600;">¿Este elemento incluye costo?</label>
+        </div>
+        
+        <div class="cost-details-container" id="cost_details_${rowId}" style="display: ${tieneCosto ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr 1.2fr; gap:10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:10px;">Cantidad</label>
+                <input type="number" class="item-cantidad-input" value="${cantidad}" min="1" step="any" placeholder="Ej. 1">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:10px;">Precio Unitario ($)</label>
+                <input type="number" class="item-precio-input" value="${precioUnitario}" min="0" step="any" placeholder="Ej. 1000">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label style="font-size:10px;">Total ($)</label>
+                <input type="number" class="item-total-input" value="${total}" min="0" step="any" placeholder="Ej. 1000">
+            </div>
         </div>
     `;
+
+    // Referencias internas
+    const checkbox = card.querySelector('.item-tiene-costo-checkbox');
+    const costContainer = card.querySelector('.cost-details-container');
+    const qtyInput = card.querySelector('.item-cantidad-input');
+    const priceInput = card.querySelector('.item-precio-input');
+    const totalInput = card.querySelector('.item-total-input');
+
+    // Cambiar visibilidad de campos de costo
+    checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            costContainer.style.display = 'grid';
+        } else {
+            costContainer.style.display = 'none';
+            qtyInput.value = '';
+            priceInput.value = '';
+            totalInput.value = '';
+        }
+        triggerPreviewSync();
+    });
+
+    // Auto-calcular total
+    function autoCalcTotal() {
+        const qty = parseFloat(qtyInput.value);
+        const price = parseFloat(priceInput.value);
+        if (!isNaN(qty) && !isNaN(price)) {
+            totalInput.value = (qty * price).toFixed(2);
+        }
+        triggerPreviewSync();
+    }
+
+    qtyInput.addEventListener('input', autoCalcTotal);
+    priceInput.addEventListener('input', autoCalcTotal);
+    totalInput.addEventListener('input', () => triggerPreviewSync());
 
     card.querySelector('.btn-remove-item').addEventListener('click', () => {
         card.remove();
         triggerPreviewSync();
     });
 
-    card.querySelector('.item-label-input').addEventListener('input', () => triggerPreviewSync());
-    card.querySelector('.item-value-input').addEventListener('input', () => triggerPreviewSync());
+    card.querySelector('.item-concepto-input').addEventListener('input', () => triggerPreviewSync());
+    card.querySelector('.item-descripcion-input').addEventListener('input', () => triggerPreviewSync());
 
     container.appendChild(card);
 }
@@ -347,7 +446,17 @@ function openEditor(quoteId) {
             document.getElementById('field-fecha').value = q.fecha;
             
             if (q.items && Array.isArray(q.items)) {
-                q.items.forEach(item => addDynamicItemRow(item.label, item.value));
+                q.items.forEach(item => {
+                    const cleanItem = convertOldItemIfNeeded(item);
+                    addDynamicItemRow(
+                        cleanItem.concepto, 
+                        cleanItem.descripcion, 
+                        cleanItem.tieneCosto, 
+                        cleanItem.cantidad, 
+                        cleanItem.precioUnitario, 
+                        cleanItem.total
+                    );
+                });
             }
 
             document.getElementById('field-firmante').value = q.firmante;
@@ -360,7 +469,17 @@ function openEditor(quoteId) {
         document.getElementById('field-direccion').value = '';
         document.getElementById('field-fecha').value = getFormattedTodayDate();
         
-        DEFAULT_QUOTE.items.forEach(item => addDynamicItemRow(item.label, item.value));
+        DEFAULT_QUOTE.items.forEach(item => {
+            const cleanItem = convertOldItemIfNeeded(item);
+            addDynamicItemRow(
+                cleanItem.concepto, 
+                cleanItem.descripcion, 
+                cleanItem.tieneCosto, 
+                cleanItem.cantidad, 
+                cleanItem.precioUnitario, 
+                cleanItem.total
+            );
+        });
 
         document.getElementById('field-firmante').value = DEFAULT_QUOTE.firmante;
         document.getElementById('field-puesto').value = DEFAULT_QUOTE.puesto;
@@ -382,13 +501,11 @@ async function syncQuoteToGitHub(quoteData) {
     const filePath = `cotizaciones/${quoteData.id}.json`;
     const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
 
-    // Convertir el JSON a Base64 respetando los caracteres especiales de español (tildes, eñes)
     const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(quoteData, null, 2))));
 
     try {
         let sha = null;
         
-        // 1. Validar si el archivo ya existe para obtener el SHA y actualizarlo
         const getResponse = await fetch(url, {
             headers: {
                 'Authorization': `token ${pat}`,
@@ -401,7 +518,6 @@ async function syncQuoteToGitHub(quoteData) {
             sha = fileData.sha;
         }
 
-        // 2. Guardar o actualizar archivo en el repositorio
         const body = {
             message: `Sincronizar cotización ${quoteData.id} - ${quoteData.cliente}`,
             content: contentBase64,
@@ -443,9 +559,14 @@ function saveQuote() {
     const items = [];
     const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
     itemCards.forEach(card => {
-        const label = card.querySelector('.item-label-input').value;
-        const value = card.querySelector('.item-value-input').value;
-        items.push({ label, value });
+        const concepto = card.querySelector('.item-concepto-input').value;
+        const descripcion = card.querySelector('.item-descripcion-input').value;
+        const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
+        const cantidad = card.querySelector('.item-cantidad-input').value;
+        const precioUnitario = card.querySelector('.item-precio-input').value;
+        const total = card.querySelector('.item-total-input').value;
+        
+        items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
     });
 
     const data = {
@@ -474,8 +595,6 @@ function saveQuote() {
     
     renderList();
     switchTab('preview');
-
-    // Sincronizar asíncronamente con GitHub en segundo plano (sube a Drive automáticamente)
     syncQuoteToGitHub(data);
 }
 
@@ -533,59 +652,60 @@ function bindFormRealtimePreview() {
 // Auxiliar para inyectar los ítems dinámicos en una hoja de cotización
 function renderDynamicItemsToSheet(sheetElement, quoteData) {
     const servicesBody = sheetElement.querySelector('.val-services-table-body');
-    const costsBody = sheetElement.querySelector('.val-costs-table-body');
     const folioEl = sheetElement.querySelector('.val-quote-number');
     
     if (folioEl) {
         folioEl.textContent = getFolioNumber(quoteData);
     }
 
-    if (!servicesBody || !costsBody) return;
+    if (!servicesBody) return;
 
     servicesBody.innerHTML = '';
-    costsBody.innerHTML = '';
 
     const itemsArray = quoteData.items;
     if (!itemsArray || !Array.isArray(itemsArray)) return;
 
-    const costKeywords = ['COSTO', 'PRECIO', 'CONDICION', 'PAGO', 'VIGENCIA', 'GARANTIA', 'TOTAL', '$', 'IMPORTE'];
+    let grandTotal = 0;
 
     itemsArray.forEach(item => {
-        const isCost = costKeywords.some(kw => item.label.toUpperCase().includes(kw));
+        const cleanItem = convertOldItemIfNeeded(item);
         const row = document.createElement('tr');
         
-        if (isCost) {
-            let formattedValue = item.value;
-            if (item.value.includes('$')) {
-                const match = item.value.match(/(\$[^\s]+)(.*)/);
-                if (match) {
-                    formattedValue = `<span class="cost-value-highlight">${match[1]}</span><span style="font-size: 11px; color:#555; display:block; margin-top:2px; font-weight:normal;">${match[2].trim()}</span>`;
-                } else {
-                    formattedValue = `<span class="cost-value-highlight">${item.value}</span>`;
-                }
-            } else {
-                formattedValue = `<span style="font-weight: 600; color: #0b4c2b;">${item.value}</span>`;
-            }
+        if (cleanItem.tieneCosto) {
+            const qty = cleanItem.cantidad || '';
+            const price = cleanItem.precioUnitario ? `$ ${parseFloat(cleanItem.precioUnitario).toLocaleString('es-MX', {minimumFractionDigits: 2})}` : '';
+            const totalVal = cleanItem.total ? parseFloat(cleanItem.total) : 0;
+            grandTotal += totalVal;
+            
+            const totalFormatted = `$ ${totalVal.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
 
             row.innerHTML = `
-                <td style="font-weight: 600; color: #2d3748; padding: 10px 12px; font-size:12px;">${item.label}</td>
-                <td style="text-align: right; vertical-align: middle; padding: 10px 12px; font-size:12px;">${formattedValue}</td>
+                <td style="padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">
+                    <div style="font-weight: 600; color: #2d3748;">${cleanItem.concepto}</div>
+                    <div style="font-size: 11px; color: #4a5568; margin-top: 4px; line-height: 1.4; white-space: pre-wrap;">${cleanItem.descripcion}</div>
+                </td>
+                <td style="text-align: center; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${qty}</td>
+                <td style="text-align: right; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${price}</td>
+                <td style="text-align: right; font-weight: 600; color: #0b4c2b; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${totalFormatted}</td>
             `;
-            costsBody.appendChild(row);
         } else {
             row.innerHTML = `
-                <td style="font-weight: 600; color: #2d3748; padding: 10px 12px; font-size:12px;">${item.label}</td>
-                <td style="padding: 10px 12px; font-size:12px; line-height: 1.4; color: #4a5568;">${item.value}</td>
+                <td colspan="4" style="padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">
+                    <div style="font-weight: 600; color: #2d3748;">${cleanItem.concepto}</div>
+                    <div style="font-size: 11px; color: #4a5568; margin-top: 4px; line-height: 1.4; white-space: pre-wrap;">${cleanItem.descripcion}</div>
+                </td>
             `;
-            servicesBody.appendChild(row);
         }
+        servicesBody.appendChild(row);
     });
 
     if (servicesBody.children.length === 0) {
-        servicesBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#888; padding: 15px;">Sin detalles de servicio</td></tr>`;
+        servicesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding: 15px;">Sin elementos en la cotización</td></tr>`;
     }
-    if (costsBody.children.length === 0) {
-        costsBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#888; padding: 15px;">Sin costos especificados</td></tr>`;
+
+    const grandTotalEl = sheetElement.querySelector('.val-grand-total');
+    if (grandTotalEl) {
+        grandTotalEl.textContent = `$ ${grandTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
     }
 }
 
@@ -609,9 +729,13 @@ function triggerPreviewSync() {
     const items = [];
     const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
     itemCards.forEach(card => {
-        const label = card.querySelector('.item-label-input').value;
-        const value = card.querySelector('.item-value-input').value;
-        items.push({ label, value });
+        const concepto = card.querySelector('.item-concepto-input').value;
+        const descripcion = card.querySelector('.item-descripcion-input').value;
+        const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
+        const cantidad = card.querySelector('.item-cantidad-input').value;
+        const precioUnitario = card.querySelector('.item-precio-input').value;
+        const total = card.querySelector('.item-total-input').value;
+        items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
     });
 
     const mockQuote = {
