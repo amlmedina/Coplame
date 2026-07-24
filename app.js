@@ -919,8 +919,68 @@ async function syncQuoteToGitHub(quoteData) {
         });
 
         if (putResponse.status === 200 || putResponse.status === 201) {
-            console.log("Cotización sincronizada en el repositorio de GitHub con éxito.");
-            alert("✅ ¡Documento sincronizado en Google Drive!");
+            console.log("JSON sincronizado en el repositorio de GitHub con éxito.");
+            
+            // GENERAR Y SUBIR PDF DIRECTAMENTE DESDE EL NAVEGADOR
+            try {
+                const previewSheet = document.getElementById('preview-sheet');
+                if (window.html2pdf && previewSheet) {
+                    const isCert = quoteData.tipo === 'certificado';
+                    const prefix = isCert ? 'CERT' : 'COT';
+                    const ts = quoteData.id.substr(-6);
+                    const dateObj = new Date(quoteData.createdAt);
+                    const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+                    const cleanClient = (quoteData.cliente || 'Sin_Cliente').replace(/[^a-zA-Z0-9]/g, '_');
+                    const pdfFileName = `${prefix}_${dateStr}_${cleanClient}_${ts}.pdf`;
+                    
+                    const opt = {
+                        margin: [5, 5, 5, 5],
+                        filename: pdfFileName,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, logging: false },
+                        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+                    };
+                    
+                    // Pequeña pausa para asegurar que el DOM de preview está listo
+                    await new Promise(r => setTimeout(r, 300));
+                    
+                    const pdfBase64DataUrl = await html2pdf().set(opt).from(previewSheet).outputPdf('datauristring');
+                    const pdfBase64 = pdfBase64DataUrl.split(',')[1];
+                    
+                    const pdfFilePath = `cotizaciones/${pdfFileName}`;
+                    const pdfUrl = `https://api.github.com/repos/${repo}/contents/${pdfFilePath}`;
+                    
+                    let pdfSha = null;
+                    const checkPdf = await fetch(pdfUrl, {
+                        headers: { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json' }
+                    });
+                    if (checkPdf.status === 200) {
+                        pdfSha = (await checkPdf.json()).sha;
+                    }
+                    
+                    const pdfBody = {
+                        message: `Sincronizar PDF de ${quoteData.cliente}`,
+                        content: pdfBase64,
+                        branch: 'main'
+                    };
+                    if (pdfSha) pdfBody.sha = pdfSha;
+                    
+                    await fetch(pdfUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${pat}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                        body: JSON.stringify(pdfBody)
+                    });
+                    console.log("PDF subido a GitHub con éxito.");
+                }
+            } catch (pdfErr) {
+                console.warn("No se pudo generar/subir el PDF al repositorio", pdfErr);
+            }
+
+            alert("✅ ¡Documento sincronizado y listo para Google Drive!");
         } else {
             const errData = await putResponse.json();
             console.error("Error al sincronizar con GitHub:", errData);
