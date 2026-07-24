@@ -11,7 +11,17 @@ try:
     from playwright.sync_api import sync_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
+    import subprocess
+    import sys
+    try:
+        print("📦 Instalando Playwright dinámicamente...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "playwright"], check=True)
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+        from playwright.sync_api import sync_playwright
+        PLAYWRIGHT_AVAILABLE = True
+    except Exception as install_err:
+        print(f"⚠️ Warning: No se pudo instalar Playwright dinámicamente ({install_err}).")
+        PLAYWRIGHT_AVAILABLE = False
 
 # ID de la carpeta raíz de Google Drive destino
 ROOT_FOLDER_ID = '10eSCp_mrEjeLlMx6x6ZCxmm4XyfP_6Nz'
