@@ -866,10 +866,16 @@ function openEditor(quoteId, defaultType = 'cotizacion') {
 
 // Sincronizar cotización guardada con el repositorio de GitHub
 async function syncQuoteToGitHub(quoteData) {
-    const pat = localStorage.getItem('coplame_github_pat');
+    let pat = localStorage.getItem('coplame_github_pat');
     if (!pat) {
-        console.log("No se detectó GitHub PAT. La cotización solo se guardó de manera local.");
-        return;
+        pat = prompt("🔑 Para sincronizar automáticamente con Google Drive, ingresa tu GitHub Personal Access Token (PAT):");
+        if (pat && pat.trim()) {
+            pat = pat.trim();
+            localStorage.setItem('coplame_github_pat', pat);
+        } else {
+            alert("ℹ️ El documento se guardó localmente en este dispositivo. Para subirlo a Google Drive, configura tu Token de GitHub en el ícono de engranaje (⚙️).");
+            return;
+        }
     }
 
     const repo = 'amlmedina/Coplame';
