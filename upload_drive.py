@@ -115,31 +115,37 @@ def main():
         client_folder_id = get_or_create_folder(service, cliente, month_folder_id)
 
         # 4. Verificar si ya existe para no duplicar
-        existing_id = file_exists_in_folder(service, drive_filename, client_folder_id)
-        if existing_id:
-            print(f"  ℹ️  Ya existe en Drive. Actualizando contenido...")
-            media = MediaFileUpload(file_path, mimetype='application/json')
-            service.files().update(
-                fileId=existing_id,
-                media_body=media
-            ).execute()
-            print(f"  ✅ Actualizado en Drive.")
-        else:
-            print(f"  ⬆️  Subiendo a Drive...")
-            file_metadata = {
-                'name': drive_filename,
-                'parents': [client_folder_id]
-            }
-            media = MediaFileUpload(file_path, mimetype='application/json')
-            uploaded = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-            print(f"  ✅ Subido con éxito. ID en Drive: {uploaded.get('id')}")
+        try:
+            existing_id = file_exists_in_folder(service, drive_filename, client_folder_id)
+            if existing_id:
+                print(f"  ℹ️  Ya existe en Drive. Actualizando contenido...")
+                media = MediaFileUpload(file_path, mimetype='application/json')
+                service.files().update(
+                    fileId=existing_id,
+                    media_body=media
+                ).execute()
+                print(f"  ✅ Actualizado en Drive.")
+            else:
+                print(f"  ⬆️  Subiendo a Drive en carpeta ID: {client_folder_id}")
+                file_metadata = {
+                    'name': drive_filename,
+                    'parents': [client_folder_id]
+                }
+                media = MediaFileUpload(file_path, mimetype='application/json')
+                uploaded = service.files().create(
+                    body=file_metadata,
+                    media_body=media,
+                    fields='id'
+                ).execute()
+                print(f"  ✅ Subido con éxito. ID en Drive: {uploaded.get('id')}")
+        except Exception as upload_err:
+            print(f"  ❌ ERROR al subir {drive_filename}: {upload_err}")
+            import traceback
+            traceback.print_exc()
 
     print("\n🎉 Sincronización con Google Drive completada.")
 
 
 if __name__ == '__main__':
     main()
+
