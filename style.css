@@ -785,6 +785,18 @@ body {
     line-height: 1;
 }
 
+/* Drag & Drop Visual State */
+.dynamic-item-card.dragging {
+    opacity: 0.45;
+    border: 2px dashed var(--primary);
+    background-color: var(--primary-light);
+    transform: scale(0.98);
+}
+
+.dynamic-item-header:active {
+    cursor: grabbing;
+}
+
 @keyframes scaleUp {
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }

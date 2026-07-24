@@ -252,6 +252,9 @@ function initApp() {
             settingsModal.style.display = 'none';
         }
     });
+
+    // 13. Inicializar Drag and Drop para reordenar
+    initDragAndDrop();
 }
 
 // Switch entre vistas principales
@@ -381,9 +384,13 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
     const card = document.createElement('div');
     card.className = 'dynamic-item-card';
     card.id = rowId;
+    card.setAttribute('draggable', 'true');
     card.innerHTML = `
-        <div class="dynamic-item-header">
-            <span>Elemento de Cotización</span>
+        <div class="dynamic-item-header" style="cursor: grab;">
+            <div class="drag-handle" style="display: flex; align-items: center; gap: 6px; color: var(--gray-500); width: 60%; user-select: none;">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor; flex-shrink:0;"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Reordenar</span>
+            </div>
             <button type="button" class="btn-remove-item" data-row-id="${rowId}">
                 <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                 Quitar
@@ -853,3 +860,79 @@ function printCurrentQuote() {
     window.print();
     document.title = originalTitle;
 }
+
+// Inicializar Drag and Drop (Soporte Mouse y Táctil Móvil)
+function initDragAndDrop() {
+    const container = document.getElementById('dynamic-items-container');
+    let dragEl = null;
+
+    // EVENTOS DE ESCRITORIO (HTML5 Drag & Drop)
+    container.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.dynamic-item-card');
+        if (!card) return;
+        dragEl = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const card = e.target.closest('.dynamic-item-card');
+        if (!card || card === dragEl) return;
+
+        const rect = card.getBoundingClientRect();
+        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+        container.insertBefore(dragEl, next ? card.nextSibling : card);
+    });
+
+    container.addEventListener('dragend', () => {
+        if (dragEl) {
+            dragEl.classList.remove('dragging');
+            dragEl = null;
+            triggerPreviewSync();
+        }
+    });
+
+    // EVENTOS MÓVILES (Soporte Táctil)
+    let activeTouchEl = null;
+    let touchStartY = 0;
+    
+    container.addEventListener('touchstart', (e) => {
+        const handle = e.target.closest('.drag-handle') || e.target.closest('.dynamic-item-header');
+        if (!handle) return;
+        
+        const card = e.target.closest('.dynamic-item-card');
+        if (!card) return;
+        
+        activeTouchEl = card;
+        card.classList.add('dragging');
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+        if (!activeTouchEl) return;
+        
+        const touchY = e.touches[0].clientY;
+        const elements = Array.from(container.querySelectorAll('.dynamic-item-card:not(.dragging)'));
+        
+        const target = elements.find(el => {
+            const rect = el.getBoundingClientRect();
+            return touchY >= rect.top && touchY <= rect.bottom;
+        });
+
+        if (target) {
+            const rect = target.getBoundingClientRect();
+            const next = (touchY - rect.top) / (rect.bottom - rect.top) > 0.5;
+            container.insertBefore(activeTouchEl, next ? target.nextSibling : target);
+        }
+    }, { passive: true });
+
+    container.addEventListener('touchend', () => {
+        if (activeTouchEl) {
+            activeTouchEl.classList.remove('dragging');
+            activeTouchEl = null;
+            triggerPreviewSync();
+        }
+    });
+}
+
