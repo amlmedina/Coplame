@@ -724,19 +724,21 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
             const totalFormatted = `$ ${totalVal.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
 
             row.innerHTML = `
-                <td style="padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">
-                    <div style="font-weight: 600; color: #2d3748;">${cleanItem.concepto}</div>
-                    <div style="font-size: 11px; color: #4a5568; margin-top: 4px; line-height: 1.4; white-space: pre-wrap;">${cleanItem.descripcion}</div>
+                <td style="padding: 4px 8px; font-size:11px; vertical-align:top; border: 1px solid #cbd5e0;">
+                    <div style="font-weight: 600; color: #2d3748; font-size: 11px;">${cleanItem.concepto}</div>
+                    <div style="font-size: 10px; color: #4a5568; margin-top: 2px; line-height: 1.3; white-space: pre-wrap;">${cleanItem.descripcion}</div>
                 </td>
-                <td style="text-align: center; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${qty}</td>
-                <td style="text-align: right; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${price}</td>
-                <td style="text-align: right; font-weight: 600; color: #0b4c2b; padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">${totalFormatted}</td>
+                <td style="text-align: center; padding: 4px 8px; font-size:11px; vertical-align:top; border: 1px solid #cbd5e0;">${qty}</td>
+                <td style="text-align: right; padding: 4px 8px; font-size:11px; vertical-align:top; border: 1px solid #cbd5e0;">${price}</td>
+                <td style="text-align: right; font-weight: 600; color: #0b4c2b; padding: 4px 8px; font-size:11px; vertical-align:top; border: 1px solid #cbd5e0;">${totalFormatted}</td>
             `;
         } else {
             row.innerHTML = `
-                <td colspan="4" style="padding: 8px 12px; font-size:12px; vertical-align:top; border: 1px solid #cbd5e0;">
-                    <div style="font-weight: 600; color: #2d3748;">${cleanItem.concepto}</div>
-                    <div style="font-size: 11px; color: #4a5568; margin-top: 4px; line-height: 1.4; white-space: pre-wrap;">${cleanItem.descripcion}</div>
+                <td colspan="4" style="padding: 5px 8px; font-size:11px; vertical-align:top; border: 1px solid #cbd5e0;">
+                    <div style="font-size: 11px; line-height: 1.35; color: #4a5568;">
+                        <strong style="color: #2d3748; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.3px; margin-right: 4px;">${cleanItem.concepto}</strong>
+                        <span>${cleanItem.descripcion}</span>
+                    </div>
                 </td>
             `;
         }
