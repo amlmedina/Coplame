@@ -1049,22 +1049,24 @@ function deleteQuote(id) {
 
 // Vincular los campos del formulario con el preview interactivo
 function bindFormRealtimePreview() {
-    const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
-
-    fields.forEach(field => {
+    const quoteFields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
+    quoteFields.forEach(field => {
         const el = document.getElementById(`field-${field}`);
         if (el) {
-            el.addEventListener('input', () => {
-                const previewSheet = document.getElementById('preview-sheet');
-                const valEl = previewSheet.querySelector(`.val-${field}`);
-                if (valEl) {
-                    if (field === 'fecha') {
-                        valEl.textContent = formatSpanishDateString(el.value);
-                    } else {
-                        valEl.textContent = el.value;
-                    }
-                }
-            });
+            el.addEventListener('input', () => triggerPreviewSync());
+        }
+    });
+
+    const certFields = [
+        'cliente', 'direccion', 'fecha-aplicacion',
+        'tipo-servicio', 'area', 'plaga',
+        'producto', 'dosis', 'metodo',
+        'tecnico', 'puesto', 'proxima'
+    ];
+    certFields.forEach(field => {
+        const el = document.getElementById(`cert-${field}`);
+        if (el) {
+            el.addEventListener('input', () => triggerPreviewSync());
         }
     });
 }
@@ -1134,43 +1136,68 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
 // Forzar la sincronización manual del preview con los datos de los inputs del formulario
 function triggerPreviewSync() {
     const previewSheet = document.getElementById('preview-sheet');
-    const template = document.getElementById('quote-sheet-template');
+    const docTypeInput = document.getElementById('field-doc-type');
+    const docType = docTypeInput ? docTypeInput.value : 'cotizacion';
+    const isCert = docType === 'certificado';
+
+    const templateId = isCert ? 'cert-sheet-template' : 'quote-sheet-template';
+    const template = document.getElementById(templateId);
+    if (!template || !previewSheet) return;
     
     previewSheet.innerHTML = '';
     previewSheet.appendChild(template.content.cloneNode(true));
 
-    const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
-    fields.forEach(field => {
-        const inputEl = document.getElementById(`field-${field}`);
-        const previewValEl = previewSheet.querySelector(`.val-${field}`);
-        if (inputEl && previewValEl) {
-            if (field === 'fecha') {
-                previewValEl.textContent = formatSpanishDateString(inputEl.value);
-            } else {
-                previewValEl.textContent = inputEl.value;
+    if (isCert) {
+        const certFields = [
+            'cliente', 'direccion', 'fecha-aplicacion',
+            'tipo-servicio', 'area', 'plaga',
+            'producto', 'dosis', 'metodo',
+            'tecnico', 'puesto', 'proxima'
+        ];
+        const certData = {
+            id: document.getElementById('field-id').value || 'new',
+            createdAt: Date.now()
+        };
+        certFields.forEach(f => {
+            const el = document.getElementById(`cert-${f}`);
+            if (el) certData[f] = el.value;
+        });
+
+        renderCertificateToSheet(previewSheet, certData);
+    } else {
+        const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
+        fields.forEach(field => {
+            const inputEl = document.getElementById(`field-${field}`);
+            const previewValEl = previewSheet.querySelector(`.val-${field}`);
+            if (inputEl && previewValEl) {
+                if (field === 'fecha') {
+                    previewValEl.textContent = formatSpanishDateString(inputEl.value);
+                } else {
+                    previewValEl.textContent = inputEl.value;
+                }
             }
-        }
-    });
+        });
 
-    const items = [];
-    const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
-    itemCards.forEach(card => {
-        const concepto = card.querySelector('.item-concepto-input').value;
-        const descripcion = card.querySelector('.item-descripcion-input').value;
-        const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
-        const cantidad = card.querySelector('.item-cantidad-input').value;
-        const precioUnitario = card.querySelector('.item-precio-input').value;
-        const total = card.querySelector('.item-total-input').value;
-        items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
-    });
+        const items = [];
+        const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
+        itemCards.forEach(card => {
+            const concepto = card.querySelector('.item-concepto-input').value;
+            const descripcion = card.querySelector('.item-descripcion-input').value;
+            const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
+            const cantidad = card.querySelector('.item-cantidad-input').value;
+            const precioUnitario = card.querySelector('.item-precio-input').value;
+            const total = card.querySelector('.item-total-input').value;
+            items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
+        });
 
-    const mockQuote = {
-        id: document.getElementById('field-id').value || 'new',
-        createdAt: document.getElementById('field-id').value ? quotes.find(q => q.id === document.getElementById('field-id').value).createdAt : Date.now(),
-        items: items
-    };
+        const mockQuote = {
+            id: document.getElementById('field-id').value || 'new',
+            createdAt: document.getElementById('field-id').value ? (quotes.find(q => q.id === document.getElementById('field-id').value)?.createdAt || Date.now()) : Date.now(),
+            items: items
+        };
 
-    renderDynamicItemsToSheet(previewSheet, mockQuote);
+        renderDynamicItemsToSheet(previewSheet, mockQuote);
+    }
 }
 
 // Actualizar la hoja de previsualización con un objeto de cotización guardado
