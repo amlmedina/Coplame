@@ -309,10 +309,38 @@ function initApp() {
         });
     });
 
-    // 3. Crear Nueva Cotización
+    // 3. Crear Nuevo Documento (Modal de selección)
+    const newDocModal = document.getElementById('new-doc-modal');
+    const btnCloseNewDoc = document.getElementById('btn-close-new-doc');
+
     btnNewQuote.addEventListener('click', () => {
-        openEditor(null);
+        if (newDocModal) newDocModal.style.display = 'flex';
     });
+
+    if (btnCloseNewDoc) {
+        btnCloseNewDoc.addEventListener('click', () => {
+            newDocModal.style.display = 'none';
+        });
+    }
+
+    document.querySelectorAll('.new-doc-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const selectedType = card.getAttribute('data-type');
+            if (newDocModal) newDocModal.style.display = 'none';
+            openEditor(null, selectedType);
+        });
+    });
+
+    // Selector de Tipo de Documento en el Editor
+    const btnTypeCot = document.getElementById('btn-type-cotizacion');
+    const btnTypeCert = document.getElementById('btn-type-certificado');
+
+    if (btnTypeCot) {
+        btnTypeCot.addEventListener('click', () => switchDocTypeInEditor('cotizacion'));
+    }
+    if (btnTypeCert) {
+        btnTypeCert.addEventListener('click', () => switchDocTypeInEditor('certificado'));
+    }
 
     // 4. Cancelar Edición
     btnCancel.addEventListener('click', () => {
@@ -323,15 +351,11 @@ function initApp() {
         }
     });
 
-    // 5. Enviar Formulario (Guardar) — también guarda cliente automáticamente
-    quoteForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        // Auto-guardar cliente en el directorio
-        const clienteName = document.getElementById('field-cliente').value;
-        const clienteDir = document.getElementById('field-direccion').value;
-        addClientIfNew(clienteName, clienteDir);
-        saveQuote();
-    });
+    // 5. Enviar Formulario Unificado (Guardar Cotización o Certificado)
+    const unifiedForm = document.getElementById('unified-doc-form');
+    if (unifiedForm) {
+        unifiedForm.addEventListener('submit', saveDocument);
+    }
 
     // 6. Buscador
     searchInput.addEventListener('input', (e) => {
@@ -559,14 +583,20 @@ function renderList(query = '') {
             monthQuotes.forEach(q => {
                 const card = document.createElement('div');
                 card.className = 'quote-card';
+                
+                const isCert = q.tipo === 'certificado';
+                const badgeText = isCert ? 'CERTIFICADO' : 'COTIZACIÓN';
+                const badgeClass = isCert ? 'quote-card-badge cert-badge' : 'quote-card-badge';
+                const folioDisplay = isCert ? `CERT-${new Date(q.createdAt || Date.now()).getFullYear()}-${q.id.substr(-6)}` : getFolioNumber(q);
+
                 card.innerHTML = `
-                    <span class="quote-card-badge">PDF</span>
+                    <span class="${badgeClass}">${badgeText}</span>
                     <h4>${q.cliente}</h4>
                     <p>
                         <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                         ${q.direccion}
                     </p>
-                    <span class="quote-date">Folio: ${getFolioNumber(q)} | Cambio: ${new Date(q.updatedAt).toLocaleDateString('es-MX')}</span>
+                    <span class="quote-date">Folio: ${folioDisplay} | Cambio: ${new Date(q.updatedAt).toLocaleDateString('es-MX')}</span>
                     
                     <div class="quote-card-actions">
                         <button class="btn btn-secondary btn-sm btn-delete" data-id="${q.id}">Eliminar</button>
@@ -615,10 +645,16 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
     card.id = rowId;
     card.setAttribute('draggable', 'true');
     card.innerHTML = `
-        <div class="dynamic-item-header" style="cursor: grab;">
-            <div class="drag-handle" style="display: flex; align-items: center; gap: 6px; color: var(--gray-500); width: 60%; user-select: none;">
-                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor; flex-shrink:0;"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Reordenar</span>
+        <div class="dynamic-item-header" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); border-radius: var(--radius-md) var(--radius-md) 0 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="reorder-arrows" style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" class="btn-arrow-up" style="background: var(--white); border: 1px solid var(--gray-300); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--gray-700); cursor: pointer; display: flex; align-items: center; justify-content: center; height: 26px;">▲</button>
+                    <button type="button" class="btn-arrow-down" style="background: var(--white); border: 1px solid var(--gray-300); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--gray-700); cursor: pointer; display: flex; align-items: center; justify-content: center; height: 26px;">▼</button>
+                </div>
+                <div class="drag-handle" style="display: flex; align-items: center; gap: 3px; color: var(--gray-500); cursor: grab; user-select: none;">
+                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor; flex-shrink:0;"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Reordenar</span>
+                </div>
             </div>
             <button type="button" class="btn-remove-item" data-row-id="${rowId}">
                 <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -686,6 +722,26 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
     priceInput.addEventListener('input', autoCalcTotal);
     totalInput.addEventListener('input', () => triggerPreviewSync());
 
+    card.querySelector('.btn-arrow-up').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const prev = card.previousElementSibling;
+        if (prev) {
+            container.insertBefore(card, prev);
+            triggerPreviewSync();
+        }
+    });
+
+    card.querySelector('.btn-arrow-down').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = card.nextElementSibling;
+        if (next) {
+            container.insertBefore(card, next.nextSibling);
+            triggerPreviewSync();
+        }
+    });
+
     card.querySelector('.btn-remove-item').addEventListener('click', () => {
         card.remove();
         triggerPreviewSync();
@@ -697,68 +753,111 @@ function addDynamicItemRow(concepto = '', descripcion = '', tieneCosto = false, 
     container.appendChild(card);
 }
 
-// Abrir el editor para una cotización (nueva o existente)
-function openEditor(quoteId) {
-    const form = document.getElementById('quote-form');
-    form.reset();
 
-    const itemsContainer = document.getElementById('dynamic-items-container');
-    itemsContainer.innerHTML = '';
+// Cambiar pestaña activa en el selector de tipo de documento dentro del Editor
+function switchDocTypeInEditor(type) {
+    const docTypeInput = document.getElementById('field-doc-type');
+    if (docTypeInput) docTypeInput.value = type;
 
-    document.querySelectorAll('.accordion-item').forEach((acc, idx) => {
-        if (idx === 0) acc.classList.add('expanded');
-        else acc.classList.remove('expanded');
-    });
+    const btnCot = document.getElementById('btn-type-cotizacion');
+    const btnCert = document.getElementById('btn-type-certificado');
+    const secCot = document.getElementById('editor-sections-cotizacion');
+    const secCert = document.getElementById('editor-sections-certificado');
+
+    if (type === 'certificado') {
+        if (btnCot) btnCot.classList.remove('active');
+        if (btnCert) btnCert.classList.add('active');
+        if (secCot) secCot.style.display = 'none';
+        if (secCert) secCert.style.display = 'block';
+    } else {
+        if (btnCert) btnCert.classList.remove('active');
+        if (btnCot) btnCot.classList.add('active');
+        if (secCert) secCert.style.display = 'none';
+        if (secCot) secCot.style.display = 'block';
+    }
+}
+
+// Abrir el editor unificado para cargar un documento existente o crear uno nuevo
+function openEditor(quoteId, defaultType = 'cotizacion') {
+    const form = document.getElementById('unified-doc-form');
+    if (form) form.reset();
+
+    const dynamicContainer = document.getElementById('dynamic-items-container');
+    if (dynamicContainer) dynamicContainer.innerHTML = '';
 
     if (quoteId) {
         const q = quotes.find(item => item.id === quoteId);
         if (q) {
             currentQuoteId = quoteId;
             document.getElementById('field-id').value = q.id;
-            document.getElementById('field-cliente').value = q.cliente;
-            document.getElementById('field-direccion').value = q.direccion;
-            
-            // Convertir la fecha al formato ISO YYYY-MM-DD
-            document.getElementById('field-fecha').value = parseSpanishDateToISO(q.fecha);
-            
-            if (q.items && Array.isArray(q.items)) {
-                q.items.forEach(item => {
-                    const cleanItem = convertOldItemIfNeeded(item);
-                    addDynamicItemRow(
-                        cleanItem.concepto, 
-                        cleanItem.descripcion, 
-                        cleanItem.tieneCosto, 
-                        cleanItem.cantidad, 
-                        cleanItem.precioUnitario, 
-                        cleanItem.total
-                    );
-                });
-            }
 
-            document.getElementById('field-firmante').value = q.firmante;
-            document.getElementById('field-puesto').value = q.puesto;
+            const isCert = q.tipo === 'certificado';
+            const docType = isCert ? 'certificado' : 'cotizacion';
+            switchDocTypeInEditor(docType);
+
+            if (isCert) {
+                const certFields = [
+                    'cliente', 'direccion', 'fecha-aplicacion',
+                    'tipo-servicio', 'area', 'plaga',
+                    'producto', 'dosis', 'metodo',
+                    'tecnico', 'puesto', 'proxima'
+                ];
+                certFields.forEach(f => {
+                    const el = document.getElementById(`cert-${f}`);
+                    if (el && q[f]) el.value = q[f];
+                });
+            } else {
+                document.getElementById('field-cliente').value = q.cliente || '';
+                document.getElementById('field-direccion').value = q.direccion || '';
+                document.getElementById('field-fecha').value = parseSpanishDateToISO(q.fecha);
+                
+                if (q.items && Array.isArray(q.items)) {
+                    q.items.forEach(item => {
+                        const cleanItem = convertOldItemIfNeeded(item);
+                        addDynamicItemRow(
+                            cleanItem.concepto, 
+                            cleanItem.descripcion, 
+                            cleanItem.tieneCosto, 
+                            cleanItem.cantidad, 
+                            cleanItem.precioUnitario, 
+                            cleanItem.total
+                        );
+                    });
+                }
+
+                document.getElementById('field-firmante').value = q.firmante || DEFAULT_QUOTE.firmante;
+                document.getElementById('field-puesto').value = q.puesto || DEFAULT_QUOTE.puesto;
+            }
         }
     } else {
         currentQuoteId = null;
         document.getElementById('field-id').value = '';
-        document.getElementById('field-cliente').value = '';
-        document.getElementById('field-direccion').value = '';
-        document.getElementById('field-fecha').value = getLocalISODate();
-        
-        DEFAULT_QUOTE.items.forEach(item => {
-            const cleanItem = convertOldItemIfNeeded(item);
-            addDynamicItemRow(
-                cleanItem.concepto, 
-                cleanItem.descripcion, 
-                cleanItem.tieneCosto, 
-                cleanItem.cantidad, 
-                cleanItem.precioUnitario, 
-                cleanItem.total
-            );
-        });
+        switchDocTypeInEditor(defaultType);
 
-        document.getElementById('field-firmante').value = DEFAULT_QUOTE.firmante;
-        document.getElementById('field-puesto').value = DEFAULT_QUOTE.puesto;
+        if (defaultType === 'certificado') {
+            document.getElementById('cert-fecha-aplicacion').value = getLocalISODate();
+            document.getElementById('cert-tecnico').value = DEFAULT_QUOTE.firmante;
+            document.getElementById('cert-puesto').value = DEFAULT_QUOTE.puesto;
+        } else {
+            document.getElementById('field-cliente').value = '';
+            document.getElementById('field-direccion').value = '';
+            document.getElementById('field-fecha').value = getLocalISODate();
+            
+            DEFAULT_QUOTE.items.forEach(item => {
+                const cleanItem = convertOldItemIfNeeded(item);
+                addDynamicItemRow(
+                    cleanItem.concepto, 
+                    cleanItem.descripcion, 
+                    cleanItem.tieneCosto, 
+                    cleanItem.cantidad, 
+                    cleanItem.precioUnitario, 
+                    cleanItem.total
+                );
+            });
+
+            document.getElementById('field-firmante').value = DEFAULT_QUOTE.firmante;
+            document.getElementById('field-puesto').value = DEFAULT_QUOTE.puesto;
+        }
     }
 
     switchTab('editor');
@@ -815,7 +914,7 @@ async function syncQuoteToGitHub(quoteData) {
 
         if (putResponse.status === 200 || putResponse.status === 201) {
             console.log("Cotización sincronizada en el repositorio de GitHub con éxito.");
-            alert("✅ ¡Cotización sincronizada en Google Drive!");
+            alert("✅ ¡Documento sincronizado en Google Drive!");
         } else {
             const errData = await putResponse.json();
             console.error("Error al sincronizar con GitHub:", errData);
@@ -827,35 +926,68 @@ async function syncQuoteToGitHub(quoteData) {
     }
 }
 
-// Guardar cotización
-function saveQuote() {
+// Guardar documento (Cotización o Certificado)
+function saveDocument(e) {
+    if (e) e.preventDefault();
+
     const id = document.getElementById('field-id').value;
     const isNew = !id;
+    const docTypeInput = document.getElementById('field-doc-type');
+    const docType = docTypeInput ? docTypeInput.value : 'cotizacion';
+    const isCert = docType === 'certificado';
 
-    const items = [];
-    const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
-    itemCards.forEach(card => {
-        const concepto = card.querySelector('.item-concepto-input').value;
-        const descripcion = card.querySelector('.item-descripcion-input').value;
-        const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
-        const cantidad = card.querySelector('.item-cantidad-input').value;
-        const precioUnitario = card.querySelector('.item-precio-input').value;
-        const total = card.querySelector('.item-total-input').value;
+    let data = {};
+
+    if (isCert) {
+        const certFields = [
+            'cliente', 'direccion', 'fecha-aplicacion',
+            'tipo-servicio', 'area', 'plaga',
+            'producto', 'dosis', 'metodo',
+            'tecnico', 'puesto', 'proxima'
+        ];
         
-        items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
-    });
+        data = {
+            id: isNew ? 'q_' + Date.now() : id,
+            tipo: 'certificado',
+            createdAt: isNew ? Date.now() : (quotes.find(q => q.id === id)?.createdAt || Date.now()),
+            updatedAt: Date.now()
+        };
 
-    const data = {
-        id: isNew ? 'q_' + Date.now() : id,
-        cliente: document.getElementById('field-cliente').value,
-        direccion: document.getElementById('field-direccion').value,
-        fecha: document.getElementById('field-fecha').value, // se guarda en formato YYYY-MM-DD
-        items: items,
-        firmante: document.getElementById('field-firmante').value,
-        puesto: document.getElementById('field-puesto').value,
-        createdAt: isNew ? Date.now() : quotes.find(q => q.id === id).createdAt,
-        updatedAt: Date.now()
-    };
+        certFields.forEach(f => {
+            const el = document.getElementById(`cert-${f}`);
+            if (el) data[f] = el.value;
+        });
+
+        if (data.cliente) addClientIfNew(data.cliente, data.direccion);
+    } else {
+        const items = [];
+        const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
+        itemCards.forEach(card => {
+            const concepto = card.querySelector('.item-concepto-input').value;
+            const descripcion = card.querySelector('.item-descripcion-input').value;
+            const tieneCosto = card.querySelector('.item-tiene-costo-checkbox').checked;
+            const cantidad = card.querySelector('.item-cantidad-input').value;
+            const precioUnitario = card.querySelector('.item-precio-input').value;
+            const total = card.querySelector('.item-total-input').value;
+            
+            items.push({ concepto, descripcion, tieneCosto, cantidad, precioUnitario, total });
+        });
+
+        data = {
+            id: isNew ? 'q_' + Date.now() : id,
+            tipo: 'cotizacion',
+            cliente: document.getElementById('field-cliente').value,
+            direccion: document.getElementById('field-direccion').value,
+            fecha: document.getElementById('field-fecha').value,
+            items: items,
+            firmante: document.getElementById('field-firmante').value,
+            puesto: document.getElementById('field-puesto').value,
+            createdAt: isNew ? Date.now() : (quotes.find(q => q.id === id)?.createdAt || Date.now()),
+            updatedAt: Date.now()
+        };
+
+        if (data.cliente) addClientIfNew(data.cliente, data.direccion);
+    }
 
     if (isNew) {
         quotes.push(data);
@@ -870,6 +1002,7 @@ function saveQuote() {
     currentQuoteId = data.id;
     
     renderList();
+    updatePreview(data);
     switchTab('preview');
     syncQuoteToGitHub(data);
 }
@@ -878,14 +1011,21 @@ function saveQuote() {
 function duplicateQuote(id) {
     const q = quotes.find(item => item.id === id);
     if (q) {
+        const isCert = q.tipo === 'certificado';
         const copy = {
             ...q,
             id: 'q_' + Date.now(),
             cliente: q.cliente + ' (Copia)',
-            fecha: getLocalISODate(),
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
+        
+        if (isCert) {
+            copy['fecha-aplicacion'] = getLocalISODate();
+        } else {
+            copy.fecha = getLocalISODate();
+        }
+        
         quotes.push(copy);
         saveQuotesToStorage();
         renderList();
@@ -1036,24 +1176,29 @@ function triggerPreviewSync() {
 // Actualizar la hoja de previsualización con un objeto de cotización guardado
 function updatePreview(quoteData) {
     const previewSheet = document.getElementById('preview-sheet');
-    const template = document.getElementById('quote-sheet-template');
+    const isCert = quoteData.tipo === 'certificado';
+    const templateId = isCert ? 'cert-sheet-template' : 'quote-sheet-template';
+    const template = document.getElementById(templateId);
     
     previewSheet.innerHTML = '';
     previewSheet.appendChild(template.content.cloneNode(true));
 
-    const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
-    fields.forEach(key => {
-        const valEl = previewSheet.querySelector(`.val-${key}`);
-        if (valEl) {
-            if (key === 'fecha') {
-                valEl.textContent = formatSpanishDateString(quoteData[key]);
-            } else {
-                valEl.textContent = quoteData[key];
+    if (isCert) {
+        renderCertificateToSheet(previewSheet, quoteData);
+    } else {
+        const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
+        fields.forEach(key => {
+            const valEl = previewSheet.querySelector(`.val-${key}`);
+            if (valEl) {
+                if (key === 'fecha') {
+                    valEl.textContent = formatSpanishDateString(quoteData[key]);
+                } else {
+                    valEl.textContent = quoteData[key];
+                }
             }
-        }
-    });
-
-    renderDynamicItemsToSheet(previewSheet, quoteData);
+        });
+        renderDynamicItemsToSheet(previewSheet, quoteData);
+    }
 }
 
 // Imprimir o guardar como PDF
@@ -1063,32 +1208,44 @@ function printCurrentQuote() {
     const quote = quotes.find(q => q.id === currentQuoteId);
     if (!quote) return;
 
-    const printDoc = document.getElementById('print-document');
-    const template = document.getElementById('quote-sheet-template');
+    const isCert = quote.tipo === 'certificado';
+    const printDoc = document.getElementById(isCert ? 'print-certificate' : 'print-document');
+    const templateId = isCert ? 'cert-sheet-template' : 'quote-sheet-template';
+    const template = document.getElementById(templateId);
     
     printDoc.innerHTML = '';
     printDoc.appendChild(template.content.cloneNode(true));
 
-    const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
-    fields.forEach(key => {
-        const valEl = printDoc.querySelector(`.val-${key}`);
-        if (valEl) {
-            if (key === 'fecha') {
-                valEl.textContent = formatSpanishDateString(quote[key]);
-            } else {
-                valEl.textContent = quote[key];
+    if (isCert) {
+        renderCertificateToSheet(printDoc, quote);
+    } else {
+        const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
+        fields.forEach(key => {
+            const valEl = printDoc.querySelector(`.val-${key}`);
+            if (valEl) {
+                if (key === 'fecha') {
+                    valEl.textContent = formatSpanishDateString(quote[key]);
+                } else {
+                    valEl.textContent = quote[key];
+                }
             }
-        }
-    });
-
-    renderDynamicItemsToSheet(printDoc, quote);
+        });
+        renderDynamicItemsToSheet(printDoc, quote);
+    }
 
     const originalTitle = document.title;
-    document.title = `Cotizacion Coplame - ${quote.cliente}`;
+    const docName = isCert ? 'Certificado' : 'Cotizacion';
+    document.title = `${docName} Coplame - ${quote.cliente}`;
+    
     printDoc.setAttribute('data-print-active', 'true');
-    window.print();
-    printDoc.removeAttribute('data-print-active');
-    document.title = originalTitle;
+    
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+            printDoc.removeAttribute('data-print-active');
+            document.title = originalTitle;
+        }, 100);
+    }, 50);
 }
 
 // Inicializar Drag and Drop (Soporte Mouse y Táctil Móvil)
@@ -1166,63 +1323,76 @@ function initDragAndDrop() {
     });
 }
 
-// Compartir cotización actual (Web Share API en móvil, fallback a imprimir)
+// Compartir cotización actual o certificado (Genera archivo PDF real para WhatsApp / Web Share)
 async function shareCurrentQuote() {
     if (!currentQuoteId) return;
     const quote = quotes.find(q => q.id === currentQuoteId);
     if (!quote) return;
 
-    const title = `Cotización Coplame - ${quote.cliente}`;
-    const text = `Cotización para ${quote.cliente}\n${quote.direccion}\nFolio: ${getFolioNumber(quote)}\nFecha: ${formatSpanishDateString(quote.fecha)}`;
+    const isCert = quote.tipo === 'certificado';
+    const docType = isCert ? 'Certificado' : 'Cotizacion';
+    const title = `${docType} Coplame - ${quote.cliente}`;
+    const folio = isCert ? `CERT-${new Date(quote.createdAt || Date.now()).getFullYear()}-${quote.id.substr(-6)}` : getFolioNumber(quote);
+    const dateField = isCert ? quote['fecha-aplicacion'] : quote.fecha;
+    const text = `${docType} Coplame para ${quote.cliente}\nFolio: ${folio}\nFecha: ${formatSpanishDateString(dateField)}`;
+    const sanitizedClient = (quote.cliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `${docType}_Coplame_${sanitizedClient}_${folio}.pdf`;
 
-    if (navigator.share) {
-        try {
+    const previewSheet = document.getElementById('preview-sheet');
+    const btnShare = document.getElementById('btn-share');
+    const originalContent = btnShare ? btnShare.innerHTML : '';
+    if (btnShare) btnShare.innerHTML = '⏳ Generando PDF...';
+
+    try {
+        let pdfFile = null;
+        if (window.html2pdf && previewSheet) {
+            const opt = {
+                margin: [5, 5, 5, 5],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+            
+            // Usar outputPdf('blob') de html2pdf.js
+            const pdfBlob = await html2pdf().set(opt).from(previewSheet).outputPdf('blob');
+            pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+        }
+
+        if (pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({
+                title: title,
+                text: text,
+                files: [pdfFile]
+            });
+        } else if (pdfFile) {
+            // Fallback para escritorios / navegadores sin compartir archivo nativo: Descargar el PDF directamente
+            const opt = {
+                margin: [5, 5, 5, 5],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+            await html2pdf().set(opt).from(previewSheet).save();
+        } else if (navigator.share) {
             await navigator.share({ title, text });
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.warn('Share error:', err);
-                window.print();
-            }
         }
-    } else {
-        // Fallback: copiar datos al portapapeles
-        try {
-            await navigator.clipboard.writeText(text);
-            alert('✅ Datos de la cotización copiados al portapapeles.');
-        } catch {
-            window.print();
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.warn('Share error:', err);
+            alert("⚠️ No se pudo compartir el PDF directamente. Utiliza el botón 'Imprimir / PDF' para guardarlo.");
         }
+    } finally {
+        if (btnShare) btnShare.innerHTML = originalContent;
     }
 }
-
-// --- MÓDULO DE CERTIFICADO DE APLICACIÓN ---
 
 function initCertModule() {
-    const certForm = document.getElementById('cert-form');
-    const btnCertCancel = document.getElementById('btn-cert-cancel');
-
-    // Fecha por defecto = hoy
-    document.getElementById('cert-fecha-aplicacion').value = getLocalISODate();
-
-    if (btnCertCancel) {
-        btnCertCancel.addEventListener('click', () => {
-            switchTab('list');
-        });
-    }
-
-    if (certForm) {
-        certForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            printCertificate();
-        });
-    }
+    // Unificado en el módulo principal del Editor
 }
 
-function renderCertToContainer(container) {
-    const template = document.getElementById('cert-sheet-template');
-    container.innerHTML = '';
-    container.appendChild(template.content.cloneNode(true));
-
+function renderCertificateToSheet(container, certData) {
     const fields = [
         'cliente', 'direccion', 'fecha-aplicacion',
         'tipo-servicio', 'area', 'plaga',
@@ -1231,42 +1401,27 @@ function renderCertToContainer(container) {
     ];
 
     fields.forEach(field => {
-        const inputEl = document.getElementById(`cert-${field}`);
         const valEl = container.querySelector(`.cert-val-${field}`);
-        if (inputEl && valEl) {
-            const val = inputEl.value;
-            valEl.textContent = field.includes('fecha') ? formatSpanishDateString(val) : val;
+        if (valEl) {
+            const val = certData[field] || '';
+            valEl.textContent = field.includes('fecha') && val ? formatSpanishDateString(val) : val;
         }
     });
 
     // Próxima aplicación
-    const proximaInput = document.getElementById('cert-proxima');
     const proximaEl = container.querySelector('.cert-val-proxima');
     if (proximaEl) {
-        proximaEl.textContent = proximaInput && proximaInput.value
-            ? formatSpanishDateString(proximaInput.value)
+        proximaEl.textContent = certData['proxima']
+            ? formatSpanishDateString(certData['proxima'])
             : 'A definir';
     }
 
     // Folio del certificado
     const folioEl = container.querySelector('.cert-val-folio');
     if (folioEl) {
-        const ts = Date.now().toString().substr(-6);
-        folioEl.textContent = `CERT-${new Date().getFullYear()}-${ts}`;
+        const ts = certData.id ? certData.id.substr(-6) : Date.now().toString().substr(-6);
+        folioEl.textContent = `CERT-${new Date(certData.createdAt || Date.now()).getFullYear()}-${ts}`;
     }
-}
-
-function printCertificate() {
-    const printContainer = document.getElementById('print-certificate');
-    renderCertToContainer(printContainer);
-
-    const cliente = document.getElementById('cert-cliente').value || 'Certificado';
-    const originalTitle = document.title;
-    document.title = `Certificado Coplame - ${cliente}`;
-    printContainer.setAttribute('data-print-active', 'true');
-    window.print();
-    printContainer.removeAttribute('data-print-active');
-    document.title = originalTitle;
 }
 
 // ---- PANTALLA DE BLOQUEO PIN ----

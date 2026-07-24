@@ -15,6 +15,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2pdf.js para exportar/compartir PDF real -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <!-- Pantalla de Bloqueo PIN -->
@@ -83,20 +85,16 @@
             </button>
             <button class="nav-tab" data-tab="editor" id="tab-editor">
                 <svg viewBox="0 0 24 24" class="icon"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                Editar
+                Editor
             </button>
             <button class="nav-tab" data-tab="preview" id="tab-preview">
                 <svg viewBox="0 0 24 24" class="icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                 Vista PDF
             </button>
-            <button class="nav-tab" data-tab="cert-editor" id="tab-cert-editor">
-                <svg viewBox="0 0 24 24" class="icon"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-                Certificado
-            </button>
         </nav>
 
         <main class="app-content no-print">
-            <!-- VISTA: Lista de Cotizaciones -->
+            <!-- VISTA: Lista de Cotizaciones y Certificados -->
             <section id="view-list" class="tab-view active">
                 <div class="search-bar">
                     <input type="text" id="search-input" placeholder="Buscar por cliente o dirección...">
@@ -106,72 +104,156 @@
                 </div>
             </section>
 
-            <!-- VISTA: Editor de Cotización -->
+            <!-- VISTA UNIFICADA: Editor de Documentos (Cotización / Certificado) -->
             <section id="view-editor" class="tab-view">
-                <form id="quote-form">
+                <!-- Selector de Tipo de Documento -->
+                <div class="doc-type-selector no-print" id="doc-type-selector">
+                    <button type="button" class="doc-type-btn active" data-type="cotizacion" id="btn-type-cotizacion">
+                        📄 Cotización de Servicio
+                    </button>
+                    <button type="button" class="doc-type-btn" data-type="certificado" id="btn-type-certificado">
+                        📜 Certificado de Aplicación
+                    </button>
+                </div>
+
+                <form id="unified-doc-form">
                     <input type="hidden" id="field-id">
+                    <input type="hidden" id="field-doc-type" value="cotizacion">
 
-                    <!-- SECCIÓN: Cliente e Información Básica -->
-                    <div class="accordion-item expanded">
-                        <div class="accordion-header">
-                            <h3>Información del Cliente</h3>
+                    <!-- CAMPOS FORMULARIO: COTIZACIÓN -->
+                    <div id="editor-sections-cotizacion">
+                        <!-- SECCIÓN: Cliente e Información Básica -->
+                        <div class="accordion-item expanded">
+                            <div class="accordion-header">
+                                <h3>Información del Cliente</h3>
+                            </div>
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    <label for="field-cliente">Cliente</label>
+                                    <input type="text" id="field-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" required autocomplete="off">
+                                    <datalist id="clients-datalist"></datalist>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-direccion">Dirección</label>
+                                    <input type="text" id="field-direccion" list="addresses-datalist" placeholder="Ej. Matamoros # 140 Col. Barrio el Capulin" required autocomplete="off">
+                                    <datalist id="addresses-datalist"></datalist>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-fecha">Fecha</label>
+                                    <input type="date" id="field-fecha">
+                                </div>
+                            </div>
                         </div>
-                        <div class="accordion-body">
-                            <div class="form-group">
-                                <label for="field-cliente">Cliente</label>
-                                <input type="text" id="field-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" required autocomplete="off">
-                                <datalist id="clients-datalist"></datalist>
+
+                        <!-- SECCIÓN: Campos Dinámicos de la Cotización -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <h3>Campos y Costos de la Cotización</h3>
                             </div>
-                            <div class="form-group">
-                                <label for="field-direccion">Dirección</label>
-                                <input type="text" id="field-direccion" list="addresses-datalist" placeholder="Ej. Matamoros # 140 Col. Barrio el Capulin" required autocomplete="off">
-                                <datalist id="addresses-datalist"></datalist>
+                            <div class="accordion-body">
+                                <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Puedes editar las etiquetas e información de cada campo, eliminarlos o agregar campos nuevos bajo demanda.</p>
+                                <div id="dynamic-items-container" class="dynamic-items-list">
+                                    <!-- Se llena dinámicamente con JS -->
+                                </div>
+                                <button type="button" id="btn-add-item" class="btn btn-secondary btn-sm" style="margin-top: 10px; width: 100%;">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                    Agregar Campo Nuevo
+                                </button>
                             </div>
-                            <div class="form-group">
-                                <label for="field-fecha">Fecha</label>
-                                <input type="date" id="field-fecha" required>
+                        </div>
+
+                        <!-- SECCIÓN: Firma / Remitente -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <h3>Firma y Remitente</h3>
+                            </div>
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    <label for="field-firmante">Nombre del Firmante</label>
+                                    <input type="text" id="field-firmante" value="Alejandro Medina">
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-puesto">Puesto</label>
+                                    <input type="text" id="field-puesto" value="Coordinador General">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SECCIÓN: Campos Dinámicos de la Cotización -->
-                    <div class="accordion-item">
-                        <div class="accordion-header">
-                            <h3>Campos y Costos de la Cotización</h3>
-                        </div>
-                        <div class="accordion-body">
-                            <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Puedes editar las etiquetas e información de cada campo, eliminarlos o agregar campos nuevos bajo demanda.</p>
-                            <div id="dynamic-items-container" class="dynamic-items-list">
-                                <!-- Se llena dinámicamente con JS -->
+                    <!-- CAMPOS FORMULARIO: CERTIFICADO DE APLICACIÓN -->
+                    <div id="editor-sections-certificado" style="display: none;">
+                        <!-- SECCIÓN: Datos del Servicio Aplicado -->
+                        <div class="accordion-item expanded">
+                            <div class="accordion-header"><h3>Datos del Servicio Aplicado</h3></div>
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    <label for="cert-cliente">Cliente</label>
+                                    <input type="text" id="cert-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-direccion">Dirección</label>
+                                    <input type="text" id="cert-direccion" list="addresses-datalist" placeholder="Ej. Matamoros #140..." autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-fecha-aplicacion">Fecha de Aplicación</label>
+                                    <input type="date" id="cert-fecha-aplicacion">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-tipo-servicio">Tipo de Servicio</label>
+                                    <input type="text" id="cert-tipo-servicio" placeholder="Ej. Desinsectización (Fumigación)" value="Desinsectización (Fumigación)">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-area">Área Tratada</label>
+                                    <input type="text" id="cert-area" placeholder="Ej. Casas y Áreas Comunes" value="Casas y Áreas Comunes">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-plaga">Plaga Controlada</label>
+                                    <input type="text" id="cert-plaga" placeholder="Ej. Insectos rastreros y voladores" value="Insectos rastreros y voladores en general">
+                                </div>
                             </div>
-                            <button type="button" id="btn-add-item" class="btn btn-secondary btn-sm" style="margin-top: 10px; width: 100%;">
-                                <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                                Agregar Campo Nuevo
-                            </button>
+                        </div>
+                        <!-- SECCIÓN: Productos Aplicados -->
+                        <div class="accordion-item">
+                            <div class="accordion-header"><h3>Productos y Dosis</h3></div>
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    <label for="cert-producto">Plaguicida / Producto</label>
+                                    <input type="text" id="cert-producto" placeholder="Ej. Piretroide de Amplio Espectro" value="Insecticidas a base de Piretroides de Amplio Espectro">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-dosis">Dosis / Concentración</label>
+                                    <input type="text" id="cert-dosis" placeholder="Ej. 5 ml / L" value="Según etiqueta del fabricante">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-metodo">Método de Aplicación</label>
+                                    <input type="text" id="cert-metodo" placeholder="Ej. Aspersión ULV" value="Aspersión residual">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- SECCIÓN: Técnico y Firma -->
+                        <div class="accordion-item">
+                            <div class="accordion-header"><h3>Técnico y Próxima Fecha</h3></div>
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    <label for="cert-tecnico">Nombre del Técnico Aplicador</label>
+                                    <input type="text" id="cert-tecnico" value="Alejandro Medina">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-puesto">Puesto</label>
+                                    <input type="text" id="cert-puesto" value="Coordinador General">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cert-proxima">Próxima Aplicación Sugerida</label>
+                                    <input type="date" id="cert-proxima">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- SECCIÓN: Firma / Remitente -->
-                    <div class="accordion-item">
-                        <div class="accordion-header">
-                            <h3>Firma y Remitente</h3>
-                        </div>
-                        <div class="accordion-body">
-                            <div class="form-group">
-                                <label for="field-firmante">Nombre del Firmante</label>
-                                <input type="text" id="field-firmante" value="Alejandro Medina">
-                            </div>
-                            <div class="form-group">
-                                <label for="field-puesto">Puesto</label>
-                                <input type="text" id="field-puesto" value="Coordinador General">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Botones de Acción en Editor -->
+                    <!-- Botones Unificados de Acción -->
                     <div class="form-actions">
                         <button type="button" id="btn-cancel" class="btn btn-secondary">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Guardar Cotización</button>
+                        <button type="submit" id="btn-save-doc" class="btn btn-success">Guardar y Ver PDF</button>
                     </div>
                 </form>
             </section>
@@ -200,83 +282,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <!-- VISTA: Editor de Certificado de Aplicación -->
-            <section id="view-cert-editor" class="tab-view">
-                <form id="cert-form">
-                    <input type="hidden" id="cert-field-id">
-                    <!-- SECCIÓN: Datos del Servicio Aplicado -->
-                    <div class="accordion-item expanded">
-                        <div class="accordion-header"><h3>Datos del Servicio</h3></div>
-                        <div class="accordion-body">
-                            <div class="form-group">
-                                <label for="cert-cliente">Cliente</label>
-                                <input type="text" id="cert-cliente" list="clients-datalist" placeholder="Ej. Condominio Matamoros" required autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-direccion">Dirección</label>
-                                <input type="text" id="cert-direccion" list="addresses-datalist" placeholder="Ej. Matamoros #140..." required autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-fecha-aplicacion">Fecha de Aplicación</label>
-                                <input type="date" id="cert-fecha-aplicacion" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-tipo-servicio">Tipo de Servicio</label>
-                                <input type="text" id="cert-tipo-servicio" placeholder="Ej. Desinsectización (Fumigación)" value="Desinsectización (Fumigación)">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-area">Área Tratada</label>
-                                <input type="text" id="cert-area" placeholder="Ej. Casas y Áreas Comunes" value="Casas y Áreas Comunes">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-plaga">Plaga Controlada</label>
-                                <input type="text" id="cert-plaga" placeholder="Ej. Insectos rastreros y voladores" value="Insectos rastreros y voladores en general">
-                            </div>
-                        </div>
-                    </div>
-                    <!-- SECCIÓN: Productos Aplicados -->
-                    <div class="accordion-item">
-                        <div class="accordion-header"><h3>Productos y Dosis</h3></div>
-                        <div class="accordion-body">
-                            <div class="form-group">
-                                <label for="cert-producto">Plaguicida / Producto</label>
-                                <input type="text" id="cert-producto" placeholder="Ej. Piretroide de Amplio Espectro" value="Insecticidas a base de Piretroides de Amplio Espectro">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-dosis">Dosis / Concentración</label>
-                                <input type="text" id="cert-dosis" placeholder="Ej. 5 ml / L" value="Según etiqueta del fabricante">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-metodo">Método de Aplicación</label>
-                                <input type="text" id="cert-metodo" placeholder="Ej. Aspersión ULV" value="Aspersión residual">
-                            </div>
-                        </div>
-                    </div>
-                    <!-- SECCIÓN: Firma -->
-                    <div class="accordion-item">
-                        <div class="accordion-header"><h3>Técnico y Firma</h3></div>
-                        <div class="accordion-body">
-                            <div class="form-group">
-                                <label for="cert-tecnico">Nombre del Técnico Aplicador</label>
-                                <input type="text" id="cert-tecnico" value="Alejandro Medina">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-puesto">Puesto</label>
-                                <input type="text" id="cert-puesto" value="Coordinador General">
-                            </div>
-                            <div class="form-group">
-                                <label for="cert-proxima">Próxima Aplicación Sugerida</label>
-                                <input type="date" id="cert-proxima">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" id="btn-cert-cancel" class="btn btn-secondary">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Generar Certificado</button>
-                    </div>
-                </form>
             </section>
         </main>
     </div>
@@ -481,6 +486,40 @@
 
                 <!-- Lista de clientes -->
                 <div id="clients-list" style="max-height: 280px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Selección de Nuevo Documento -->
+    <div id="new-doc-modal" class="modal no-print" style="display: none;">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>¿Qué deseas crear?</h3>
+                <button id="btn-close-new-doc" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Selecciona el tipo de documento que quieres preparar hoy:</p>
+                <div class="new-doc-grid">
+                    <button type="button" class="new-doc-card" data-type="cotizacion">
+                        <div class="new-doc-card-icon">
+                            <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:currentColor;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                        </div>
+                        <div class="new-doc-card-info">
+                            <h4>Cotización de Servicio</h4>
+                            <p>Propuesta económica con desglose de servicios y costos para cliente.</p>
+                        </div>
+                    </button>
+
+                    <button type="button" class="new-doc-card" data-type="certificado">
+                        <div class="new-doc-card-icon">
+                            <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:currentColor;"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+                        </div>
+                        <div class="new-doc-card-info">
+                            <h4>Certificado de Aplicación</h4>
+                            <p>Constancia oficial del servicio de fumigación y plaguicidas utilizados.</p>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
