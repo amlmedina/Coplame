@@ -1,0 +1,36 @@
+{
+  "id": "q_1784862478799",
+  "cliente": "demo1",
+  "direccion": "demo1",
+  "fecha": "2026-07-23",
+  "items": [
+    {
+      "concepto": "SERVICIO DE CONTROL DE PLAGAS:",
+      "descripcion": "Desinsectización y fumigación general en áreas comunes.",
+      "tieneCosto": true,
+      "cantidad": "1",
+      "precioUnitario": "1200",
+      "total": "1200"
+    },
+    {
+      "concepto": "VIGENCIA:",
+      "descripcion": "30 DIAS",
+      "tieneCosto": false,
+      "cantidad": "",
+      "precioUnitario": "",
+      "total": ""
+    },
+    {
+      "concepto": "CONDICIONES DE PAGO:",
+      "descripcion": "Pago en efectivo",
+      "tieneCosto": false,
+      "cantidad": "",
+      "precioUnitario": "",
+      "total": ""
+    }
+  ],
+  "firmante": "Alejandro Medina",
+  "puesto": "Coordinador General",
+  "createdAt": 1784862478799,
+  "updatedAt": 1784862478799
+}
