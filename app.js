@@ -579,15 +579,15 @@ async function syncQuoteToGitHub(quoteData) {
 
         if (putResponse.status === 200 || putResponse.status === 201) {
             console.log("Cotización sincronizada en el repositorio de GitHub con éxito.");
-            alert("¡Cotización guardada localmente y sincronizada con tu Google Drive!");
+            alert("✅ ¡Cotización sincronizada en Google Drive!");
         } else {
             const errData = await putResponse.json();
             console.error("Error al sincronizar con GitHub:", errData);
-            alert("Guardado localmente. Error de sincronización en la nube: " + (errData.message || "Token inválido"));
+            alert("⚠️ Error al sincronizar con Google Drive: " + (errData.message || "Token inválido"));
         }
     } catch (err) {
         console.error("Error de conexión al sincronizar con GitHub:", err);
-        alert("Guardado localmente. Error de conexión con GitHub (revisa tu red).");
+        alert("⚠️ No se pudo conectar con Google Drive. Revisa tu conexión o token.");
     }
 }
 
