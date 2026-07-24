@@ -125,26 +125,49 @@ function initApp() {
 
     // 11. Actualizar preview en tiempo real al escribir en los campos básicos
     bindFormRealtimePreview();
+
+    // 12. Configuración de Sincronización y Modal
+    const btnSettings = document.getElementById('btn-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const settingsPat = document.getElementById('settings-pat');
+
+    btnSettings.addEventListener('click', () => {
+        settingsPat.value = localStorage.getItem('coplame_github_pat') || '';
+        settingsModal.style.display = 'flex';
+    });
+
+    btnCloseSettings.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+    });
+
+    btnSaveSettings.addEventListener('click', () => {
+        localStorage.setItem('coplame_github_pat', settingsPat.value.trim());
+        settingsModal.style.display = 'none';
+        alert('Token de GitHub guardado con éxito.');
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
 }
 
 // Switch entre vistas principales
 function switchTab(tabName) {
-    // Desactivar todos los tabs y vistas
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
 
-    // Activar el tab seleccionado
     const tabEl = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
     if (tabEl) tabEl.classList.add('active');
 
-    // Activar la vista seleccionada
     const viewEl = document.getElementById(`view-${tabName}`);
     if (viewEl) viewEl.classList.add('active');
 
-    // Desplazarse arriba
     document.querySelector('.app-content').scrollTop = 0;
 
-    // Si entramos a vista previa, asegurarnos de cargar la cotización actual
     if (tabName === 'preview' && currentQuoteId) {
         const quote = quotes.find(q => q.id === currentQuoteId);
         if (quote) {
@@ -160,11 +183,7 @@ function initAccordions() {
         const header = item.querySelector('.accordion-header');
         header.addEventListener('click', () => {
             const isExpanded = item.classList.contains('expanded');
-            
-            // Cerrar otros
             accordions.forEach(acc => acc.classList.remove('expanded'));
-            
-            // Si no estaba expandido, abrirlo
             if (!isExpanded) {
                 item.classList.add('expanded');
             }
@@ -222,7 +241,6 @@ function renderList(query = '') {
         return;
     }
 
-    // Ordenar de más reciente a más antigua
     filtered.sort((a, b) => b.updatedAt - a.updatedAt);
 
     filtered.forEach(q => {
@@ -244,7 +262,6 @@ function renderList(query = '') {
             </div>
         `;
 
-        // Eventos
         card.querySelector('.btn-view').addEventListener('click', (e) => {
             e.stopPropagation();
             currentQuoteId = q.id;
@@ -261,7 +278,6 @@ function renderList(query = '') {
             deleteQuote(q.id);
         });
 
-        // Click en la tarjeta entera también la abre
         card.addEventListener('click', () => {
             currentQuoteId = q.id;
             switchTab('preview');
@@ -288,7 +304,7 @@ function addDynamicItemRow(label, value) {
             </button>
         </div>
         <div class="form-group">
-            <label>Etiqueta / Concepto (Ej. TIPO DE SERVICIO: o COSTO UNITARIO:)</label>
+            <label>Etiqueta / Concepto (Ej. TIPO DE SERVICIO:)</label>
             <input type="text" class="item-label-input" value="${label}" placeholder="Ej. CONDICIONES DE PAGO:" required>
         </div>
         <div class="form-group">
@@ -297,13 +313,11 @@ function addDynamicItemRow(label, value) {
         </div>
     `;
 
-    // Eventos
     card.querySelector('.btn-remove-item').addEventListener('click', () => {
         card.remove();
         triggerPreviewSync();
     });
 
-    // Cambios en tiempo real
     card.querySelector('.item-label-input').addEventListener('input', () => triggerPreviewSync());
     card.querySelector('.item-value-input').addEventListener('input', () => triggerPreviewSync());
 
@@ -318,14 +332,12 @@ function openEditor(quoteId) {
     const itemsContainer = document.getElementById('dynamic-items-container');
     itemsContainer.innerHTML = '';
 
-    // Expandir el primer acordeón por defecto
     document.querySelectorAll('.accordion-item').forEach((acc, idx) => {
         if (idx === 0) acc.classList.add('expanded');
         else acc.classList.remove('expanded');
     });
 
     if (quoteId) {
-        // Cargar existente
         const q = quotes.find(item => item.id === quoteId);
         if (q) {
             currentQuoteId = quoteId;
@@ -334,7 +346,6 @@ function openEditor(quoteId) {
             document.getElementById('field-direccion').value = q.direccion;
             document.getElementById('field-fecha').value = q.fecha;
             
-            // Cargar campos dinámicos
             if (q.items && Array.isArray(q.items)) {
                 q.items.forEach(item => addDynamicItemRow(item.label, item.value));
             }
@@ -343,14 +354,12 @@ function openEditor(quoteId) {
             document.getElementById('field-puesto').value = q.puesto;
         }
     } else {
-        // Nueva cotización (Valores predefinidos)
         currentQuoteId = null;
         document.getElementById('field-id').value = '';
         document.getElementById('field-cliente').value = '';
         document.getElementById('field-direccion').value = '';
         document.getElementById('field-fecha').value = getFormattedTodayDate();
         
-        // Cargar campos dinámicos predeterminados
         DEFAULT_QUOTE.items.forEach(item => addDynamicItemRow(item.label, item.value));
 
         document.getElementById('field-firmante').value = DEFAULT_QUOTE.firmante;
@@ -358,9 +367,72 @@ function openEditor(quoteId) {
     }
 
     switchTab('editor');
-    
-    // Forzar actualización inicial del preview con los datos cargados en el form
     triggerPreviewSync();
+}
+
+// Sincronizar cotización guardada con el repositorio de GitHub
+async function syncQuoteToGitHub(quoteData) {
+    const pat = localStorage.getItem('coplame_github_pat');
+    if (!pat) {
+        console.log("No se detectó GitHub PAT. La cotización solo se guardó de manera local.");
+        return;
+    }
+
+    const repo = 'amlmedina/Coplame';
+    const filePath = `cotizaciones/${quoteData.id}.json`;
+    const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+
+    // Convertir el JSON a Base64 respetando los caracteres especiales de español (tildes, eñes)
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(quoteData, null, 2))));
+
+    try {
+        let sha = null;
+        
+        // 1. Validar si el archivo ya existe para obtener el SHA y actualizarlo
+        const getResponse = await fetch(url, {
+            headers: {
+                'Authorization': `token ${pat}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (getResponse.status === 200) {
+            const fileData = await getResponse.json();
+            sha = fileData.sha;
+        }
+
+        // 2. Guardar o actualizar archivo en el repositorio
+        const body = {
+            message: `Sincronizar cotización ${quoteData.id} - ${quoteData.cliente}`,
+            content: contentBase64,
+            branch: 'main'
+        };
+        if (sha) {
+            body.sha = sha;
+        }
+
+        const putResponse = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${pat}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (putResponse.status === 200 || putResponse.status === 201) {
+            console.log("Cotización sincronizada en el repositorio de GitHub con éxito.");
+            alert("¡Cotización guardada localmente y sincronizada con tu Google Drive!");
+        } else {
+            const errData = await putResponse.json();
+            console.error("Error al sincronizar con GitHub:", errData);
+            alert("Guardado localmente. Error de sincronización en la nube: " + (errData.message || "Token inválido"));
+        }
+    } catch (err) {
+        console.error("Error de conexión al sincronizar con GitHub:", err);
+        alert("Guardado localmente. Error de conexión con GitHub (revisa tu red).");
+    }
 }
 
 // Guardar cotización
@@ -368,7 +440,6 @@ function saveQuote() {
     const id = document.getElementById('field-id').value;
     const isNew = !id;
 
-    // Recopilar campos dinámicos
     const items = [];
     const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
     itemCards.forEach(card => {
@@ -401,11 +472,11 @@ function saveQuote() {
     saveQuotesToStorage();
     currentQuoteId = data.id;
     
-    // Actualizar lista
     renderList();
-    
-    // Ir a la vista previa para ver el resultado final
     switchTab('preview');
+
+    // Sincronizar asíncronamente con GitHub en segundo plano (sube a Drive automáticamente)
+    syncQuoteToGitHub(data);
 }
 
 // Duplicar cotización
@@ -477,7 +548,6 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
     const itemsArray = quoteData.items;
     if (!itemsArray || !Array.isArray(itemsArray)) return;
 
-    // Palabras clave para costos y condiciones
     const costKeywords = ['COSTO', 'PRECIO', 'CONDICION', 'PAGO', 'VIGENCIA', 'GARANTIA', 'TOTAL', '$', 'IMPORTE'];
 
     itemsArray.forEach(item => {
@@ -485,12 +555,8 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
         const row = document.createElement('tr');
         
         if (isCost) {
-            // Formatear valor si contiene un precio para que sea súper claro y evidente
             let formattedValue = item.value;
-            // Si el valor contiene un signo $, lo envolvemos en un estilo destacado
             if (item.value.includes('$')) {
-                // Separar la parte del precio de la parte de texto si aplica
-                // Ej: "$ 1´000.00 A Partir de 3" -> "$ 1´000.00" destacado, "A Partir de 3" secundario
                 const match = item.value.match(/(\$[^\s]+)(.*)/);
                 if (match) {
                     formattedValue = `<span class="cost-value-highlight">${match[1]}</span><span style="font-size: 11px; color:#555; display:block; margin-top:2px; font-weight:normal;">${match[2].trim()}</span>`;
@@ -515,7 +581,6 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
         }
     });
 
-    // Si alguna de las tablas queda vacía, agregar una fila indicativa para no romper el diseño
     if (servicesBody.children.length === 0) {
         servicesBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#888; padding: 15px;">Sin detalles de servicio</td></tr>`;
     }
@@ -527,13 +592,11 @@ function renderDynamicItemsToSheet(sheetElement, quoteData) {
 // Forzar la sincronización manual del preview con los datos de los inputs del formulario
 function triggerPreviewSync() {
     const previewSheet = document.getElementById('preview-sheet');
-    
-    // Limpiar preview y cargar el template nuevo
     const template = document.getElementById('quote-sheet-template');
+    
     previewSheet.innerHTML = '';
     previewSheet.appendChild(template.content.cloneNode(true));
 
-    // Sincronizar campos principales
     const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
     fields.forEach(field => {
         const inputEl = document.getElementById(`field-${field}`);
@@ -543,7 +606,6 @@ function triggerPreviewSync() {
         }
     });
 
-    // Sincronizar campos dinámicos
     const items = [];
     const itemCards = document.querySelectorAll('#dynamic-items-container .dynamic-item-card');
     itemCards.forEach(card => {
@@ -552,7 +614,6 @@ function triggerPreviewSync() {
         items.push({ label, value });
     });
 
-    // Crear un objeto ficticio para el Folio
     const mockQuote = {
         id: document.getElementById('field-id').value || 'new',
         createdAt: document.getElementById('field-id').value ? quotes.find(q => q.id === document.getElementById('field-id').value).createdAt : Date.now(),
@@ -570,7 +631,6 @@ function updatePreview(quoteData) {
     previewSheet.innerHTML = '';
     previewSheet.appendChild(template.content.cloneNode(true));
 
-    // Llenar campos estáticos
     const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
     fields.forEach(key => {
         const valEl = previewSheet.querySelector(`.val-${key}`);
@@ -579,7 +639,6 @@ function updatePreview(quoteData) {
         }
     });
 
-    // Llenar campos dinámicos
     renderDynamicItemsToSheet(previewSheet, quoteData);
 }
 
@@ -590,14 +649,12 @@ function printCurrentQuote() {
     const quote = quotes.find(q => q.id === currentQuoteId);
     if (!quote) return;
 
-    // Poblar el contenedor para impresión
     const printDoc = document.getElementById('print-document');
     const template = document.getElementById('quote-sheet-template');
     
     printDoc.innerHTML = '';
     printDoc.appendChild(template.content.cloneNode(true));
 
-    // Llenar campos estáticos
     const fields = ['cliente', 'direccion', 'fecha', 'firmante', 'puesto'];
     fields.forEach(key => {
         const valEl = printDoc.querySelector(`.val-${key}`);
@@ -606,16 +663,11 @@ function printCurrentQuote() {
         }
     });
 
-    // Llenar campos dinámicos
     renderDynamicItemsToSheet(printDoc, quote);
 
-    // Cambiar dinámicamente el título del documento
     const originalTitle = document.title;
     document.title = `Cotizacion Coplame - ${quote.cliente}`;
 
-    // Disparar diálogo del sistema
     window.print();
-
-    // Restaurar título
     document.title = originalTitle;
 }
