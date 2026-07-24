@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coplame - Generador de Cotizaciones</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b4c2b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- Header Principal -->
+        <header class="app-header no-print">
+            <div class="header-content">
+                <div class="logo-text">
+                    <span class="brand-green">Coplame</span>
+                    <span class="brand-orange">Fumigaciones</span>
+                </div>
+                <button id="btn-new-quote" class="btn btn-primary btn-sm">
+                    <svg viewBox="0 0 24 24" class="icon"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Nueva
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs de Navegación (Solo Móvil / En pantalla) -->
+        <nav class="app-nav no-print" id="app-nav">
+            <button class="nav-tab active" data-tab="list">
+                <svg viewBox="0 0 24 24" class="icon"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+                Historial
+            </button>
+            <button class="nav-tab" data-tab="editor" id="tab-editor">
+                <svg viewBox="0 0 24 24" class="icon"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Editar
+            </button>
+            <button class="nav-tab" data-tab="preview" id="tab-preview">
+                <svg viewBox="0 0 24 24" class="icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                Vista PDF
+            </button>
+        </nav>
+
+        <main class="app-content no-print">
+            <!-- VISTA: Lista de Cotizaciones -->
+            <section id="view-list" class="tab-view active">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Buscar por cliente o dirección...">
+                </div>
+                <div class="list-container" id="quotes-list">
+                    <!-- Se llena con JS -->
+                </div>
+            </section>
+
+            <!-- VISTA: Editor de Cotización -->
+            <section id="view-editor" class="tab-view">
+                <form id="quote-form">
+                    <input type="hidden" id="field-id">
+
+                    <!-- SECCIÓN: Cliente e Información Básica -->
+                    <div class="accordion-item expanded">
+                        <div class="accordion-header">
+                            <h3>Información del Cliente</h3>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="field-cliente">Cliente</label>
+                                <input type="text" id="field-cliente" placeholder="Ej. Condominio Matamoros" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="field-direccion">Dirección</label>
+                                <input type="text" id="field-direccion" placeholder="Ej. Matamoros # 140 Col. Barrio el Capulin" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="field-fecha">Fecha</label>
+                                <input type="text" id="field-fecha" placeholder="Ej. 11 de Junio de 2026">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN: Campos Dinámicos de la Cotización -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <h3>Campos y Costos de la Cotización</h3>
+                        </div>
+                        <div class="accordion-body">
+                            <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">Puedes editar las etiquetas e información de cada campo, eliminarlos o agregar campos nuevos bajo demanda.</p>
+                            <div id="dynamic-items-container" class="dynamic-items-list">
+                                <!-- Se llena dinámicamente con JS -->
+                            </div>
+                            <button type="button" id="btn-add-item" class="btn btn-secondary btn-sm" style="margin-top: 10px; width: 100%;">
+                                <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                Agregar Campo Nuevo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN: Firma / Remitente -->
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <h3>Firma y Remitente</h3>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="field-firmante">Nombre del Firmante</label>
+                                <input type="text" id="field-firmante" value="Alejandro Medina">
+                            </div>
+                            <div class="form-group">
+                                <label for="field-puesto">Puesto</label>
+                                <input type="text" id="field-puesto" value="Coordinador General">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción en Editor -->
+                    <div class="form-actions">
+                        <button type="button" id="btn-cancel" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Cotización</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- VISTA: Vista Previa en Pantalla -->
+            <section id="view-preview" class="tab-view">
+                <div class="preview-actions">
+                    <button id="btn-edit-current" class="btn btn-secondary btn-sm">
+                        <svg viewBox="0 0 24 24" class="icon"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                        Editar
+                    </button>
+                    <button id="btn-print" class="btn btn-primary btn-sm">
+                        <svg viewBox="0 0 24 24" class="icon"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                        Imprimir / PDF
+                    </button>
+                </div>
+                <div class="preview-card">
+                    <!-- Contenedor del documento exacto (escalado para pantalla) -->
+                    <div class="scale-wrapper">
+                        <div class="quote-document-sheet" id="preview-sheet">
+                            <!-- Se replica el contenido dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- EL DOCUMENTO PARA IMPRESIÓN (Separado para control total de estilos de impresión) -->
+    <div id="print-document" class="quote-document-sheet print-only">
+        <!-- Rellenado dinámicamente por JS al momento de imprimir -->
+    </div>
+
+    <!-- TEMPLATE PARA LA HOJA DE COTIZACIÓN -->
+    <template id="quote-sheet-template">
+        <div class="doc-header">
+            <div class="doc-logo-container">
+                <img class="doc-logo" src="Logo.png" alt="Coplame Logo">
+            </div>
+            <div class="doc-brand-title">
+                <h1 class="brand-title-coplame">Coplame</h1>
+                <h2 class="brand-title-fumigaciones">Fumigaciones</h2>
+                <p class="brand-subtitle">Control y Manejo Seguro de Plagas</p>
+            </div>
+        </div>
+
+        <div class="doc-title">
+            COTIZACIÓN
+        </div>
+
+        <div class="doc-body">
+            <!-- Bloque de información corporativo -->
+            <div class="doc-info-block">
+                <div class="info-column">
+                    <div class="info-title">CLIENTE Y DIRECCIÓN</div>
+                    <div class="info-row"><span class="info-label">CLIENTE:</span> <span class="val-cliente" style="font-weight: bold; color: #1a202c;"></span></div>
+                    <div class="info-row"><span class="info-label">DIRECCIÓN:</span> <span class="val-direccion"></span></div>
+                </div>
+                <div class="info-column">
+                    <div class="info-title">DATOS DEL DOCUMENTO</div>
+                    <div class="info-row"><span class="info-label">FECHA:</span> <span class="val-fecha"></span></div>
+                    <div class="info-row"><span class="info-label">FOLIO COTIZACIÓN:</span> <span class="val-quote-number" style="font-weight: bold; color: #0b4c2b;"></span></div>
+                </div>
+            </div>
+
+            <!-- Tabla de Detalles de Servicio -->
+            <div class="table-container">
+                <table class="doc-table services-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Concepto / Servicio</th>
+                            <th style="width: 65%;">Descripción Detallada</th>
+                        </tr>
+                    </thead>
+                    <tbody class="val-services-table-body">
+                        <!-- Llenado dinámico -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de Costos y Condiciones (Precios muy claros y evidentes) -->
+            <div class="table-container">
+                <table class="doc-table costs-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60%;">Concepto Económico / Condiciones</th>
+                            <th style="width: 40%; text-align: right;">Importe / Especificación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="val-costs-table-body">
+                        <!-- Llenado dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="doc-signature">
+            <p class="sig-atentamente">ATENTAMENTE</p>
+            <div class="sig-line"></div>
+            <p class="sig-name val-firmante"></p>
+            <p class="sig-title val-puesto"></p>
+        </div>
+
+        <div class="doc-footer">
+            <p class="footer-address">Cotingas # 47 Fracc: Las Alamedas, Atizapan de Zaragoza, Edo. de Mex.</p>
+            <p class="footer-contact">Tel: 55 10 94 44 39 <span class="footer-email">coplame@hotmail.com</span></p>
+            <p class="footer-licence">Lic. Fed. SSA A 93-231</p>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>

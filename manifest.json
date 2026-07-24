@@ -1,0 +1,17 @@
+{
+  "name": "Coplame Fumigaciones",
+  "short_name": "Coplame",
+  "description": "Generador y gestor móvil de cotizaciones de Coplame",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b4c2b",
+  "theme_color": "#0b4c2b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

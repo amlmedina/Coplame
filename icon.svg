@@ -1,0 +1,49 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <!-- Fondo del icono -->
+    <rect width="512" height="512" rx="128" fill="#086937"/>
+    
+    <!-- Contenedor del Logo interno en blanco/naranja -->
+    <g transform="translate(81, 106) scale(1.0)">
+        <!-- Borde principal redondeado del logo -->
+        <rect x="10" y="10" width="330" height="280" rx="30" fill="none" stroke="#ffffff" stroke-width="12"/>
+        
+        <!-- Línea diagonal divisoria -->
+        <line x1="150" y1="10" x2="75" y2="290" stroke="#ffffff" stroke-width="12" />
+        <line x1="215" y1="10" x2="140" y2="290" stroke="#ffffff" stroke-width="12" />
+        
+        <!-- Texto COPLAME en la parte superior -->
+        <text x="32" y="100" font-family="'Outfit', sans-serif, Arial" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="2">COPLAME</text>
+        
+        <!-- Dibujo del Insecto (Izquierda) -->
+        <g transform="translate(60, 210) scale(0.9)">
+            <!-- Alas -->
+            <ellipse cx="0" cy="-25" rx="35" ry="12" fill="none" stroke="#ffffff" stroke-width="6" transform="rotate(-30)" />
+            <ellipse cx="0" cy="25" rx="35" ry="12" fill="none" stroke="#ffffff" stroke-width="6" transform="rotate(30)" />
+            <!-- Cuerpo -->
+            <ellipse cx="15" cy="0" rx="30" ry="10" fill="none" stroke="#ffffff" stroke-width="6"/>
+            <!-- Cabeza -->
+            <circle cx="50" cy="0" r="10" fill="none" stroke="#ffffff" stroke-width="6"/>
+            <!-- Antenas -->
+            <path d="M 58 -5 Q 68 -15 65 -25" fill="none" stroke="#ffffff" stroke-width="6" />
+            <path d="M 58 5 Q 68 15 65 25" fill="none" stroke="#ffffff" stroke-width="6" />
+            <!-- Patas traseras -->
+            <path d="M -5 5 L -20 20" stroke="#ffffff" stroke-width="6"/>
+            <path d="M -5 -5 L -20 -20" stroke="#ffffff" stroke-width="6"/>
+        </g>
+        
+        <!-- Dibujo del Ratón (Derecha) -->
+        <g transform="translate(230, 210) scale(1.0)">
+            <!-- Cuerpo y cabeza (línea fluida) -->
+            <path d="M -30 20 C -25 -20, 20 -20, 30 -5 C 32 -2, 50 15, 60 15 C 50 18, 10 20, -30 20 Z" fill="none" stroke="#ffffff" stroke-width="6" />
+            <!-- Oreja -->
+            <circle cx="5" cy="-8" r="12" fill="none" stroke="#ffffff" stroke-width="6" />
+            <!-- Ojo -->
+            <circle cx="35" cy="3" r="3.5" fill="#ffffff" />
+            <!-- Nariz -->
+            <circle cx="60" cy="15" r="4.5" fill="#e57d38" />
+            <!-- Bigotes -->
+            <line x1="55" y1="15" x2="70" y2="10" stroke="#ffffff" stroke-width="4.5" />
+            <line x1="55" y1="16" x2="68" y2="22" stroke="#ffffff" stroke-width="4.5" />
+        </g>
+    </g>
+</svg>
