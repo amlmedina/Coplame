@@ -352,8 +352,9 @@ body {
 
 .accordion-item.expanded .accordion-body {
     padding: 16px;
-    max-height: 1000px;
+    max-height: none;
     opacity: 1;
+    overflow: visible;
 }
 
 /* Campos de Formulario */
