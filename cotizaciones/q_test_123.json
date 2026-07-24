@@ -1,0 +1,12 @@
+{
+  "id": "q_test_123",
+  "tipo": "cotizacion",
+  "cliente": "Cliente Prueba Automatica",
+  "direccion": "Av. Principal #123",
+  "fecha": "2026-07-24",
+  "items": [],
+  "firmante": "Alejandro Medina",
+  "puesto": "Coordinador General",
+  "createdAt": 1784855000000,
+  "updatedAt": 1784855000000
+}
